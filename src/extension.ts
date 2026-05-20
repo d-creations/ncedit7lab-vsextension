@@ -4,9 +4,9 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as net from 'net';
 import { NCEditorProvider } from './NCEditorProvider';
-import { WorkbenchPanelWebviewViewProvider } from './FocasWebviewViewProvider';
+import { WorkbenchPanelWebviewViewProvider } from './BottomViewProvider';
 
-type WorkbenchTab = 'variables' | 'errors' | 'focas';
+type WorkbenchTab = 'variables' | 'errors' | 'ptm';
 
 let backendProcess: cp.ChildProcess | undefined;
 
@@ -29,29 +29,29 @@ export async function activate(context: vscode.ExtensionContext) {
 	};
 
     const getEditorWebviewConfig = () => {
-        const focasConfig = vscode.workspace.getConfiguration('nccode7lab.focas');
+        const ptmConfig = vscode.workspace.getConfiguration('nccode7lab.ptm');
         const layoutConfig = vscode.workspace.getConfiguration('nccode7lab.layout');
         const themeMode = vscode.workspace.getConfiguration('nccode7lab').get<string>('theme.mode') || 'vscode';
         return {
             backendPort,
             backendBaseUrl: getBackendBaseUrl(),
-            focasDefaultIp: focasConfig.get<string>('defaultIpAddress') || '192.168.1.1',
+            ptmDefaultIp: ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1',
             themeMode,
             hostMode: 'vscode-editor',
-            focasPlacement: layoutConfig.get<string>('focasPlacement') || 'external-panel',
+            ptmPlacement: layoutConfig.get<string>('ptmPlacement') || 'external-panel',
         };
     };
 
     const getPanelWebviewConfig = () => {
-        const focasConfig = vscode.workspace.getConfiguration('nccode7lab.focas');
+        const ptmConfig = vscode.workspace.getConfiguration('nccode7lab.ptm');
         const themeMode = vscode.workspace.getConfiguration('nccode7lab').get<string>('theme.mode') || 'vscode';
         return {
             backendPort,
             backendBaseUrl: getBackendBaseUrl(),
-            focasDefaultIp: focasConfig.get<string>('defaultIpAddress') || 'DEMO',
+            ptmDefaultIp: ptmConfig.get<string>('defaultIpAddress') || 'DEMO',
             themeMode,
             hostMode: 'vscode-panel',
-            focasPlacement: 'disabled',
+            ptmPlacement: 'disabled',
         };
     };
 
@@ -75,7 +75,7 @@ export async function activate(context: vscode.ExtensionContext) {
     });
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('nccode7lab.openWorkbenchPanel', async (tab?: 'variables' | 'errors' | 'focas') => {
+        vscode.commands.registerCommand('nccode7lab.openWorkbenchPanel', async (tab?: 'variables' | 'errors' | 'ptm') => {
             await workbenchPanelProvider.reveal(tab);
         })
     );
@@ -124,7 +124,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.workspace.onDidChangeConfiguration((event) => {
             if (
                 event.affectsConfiguration('nccode7lab') ||
-                event.affectsConfiguration('nccode7lab.focas') ||
+                event.affectsConfiguration('nccode7lab.ptm') ||
                 event.affectsConfiguration('nccode7lab.layout')
             ) {
                 editorProvider.updateConfig(getEditorWebviewConfig());
@@ -170,7 +170,7 @@ export async function activate(context: vscode.ExtensionContext) {
             
             if (!hasShownSuccess && (msg.includes('Application startup complete') || msg.includes('Uvicorn running on'))) {
                 hasShownSuccess = true;
-                vscode.window.showInformationMessage('NC-CODE7Lab FOCAS Backend started successfully.');
+                vscode.window.showInformationMessage('NC-CODE7Lab PTM Backend started successfully.');
             }
 
             // Listen for deliberate notifications triggered by Python backend transfers
@@ -189,7 +189,7 @@ export async function activate(context: vscode.ExtensionContext) {
             // Uvicorn sometimes logs startup success to stderr depending on configuration
             if (!hasShownSuccess && (msg.includes('Application startup complete') || msg.includes('Uvicorn running on'))) {
                 hasShownSuccess = true;
-                vscode.window.showInformationMessage('NC-CODE7Lab FOCAS Backend started successfully.');
+                vscode.window.showInformationMessage('NC-CODE7Lab PTM Backend started successfully.');
             }
         });
 		backendProcess.on('error', error => {

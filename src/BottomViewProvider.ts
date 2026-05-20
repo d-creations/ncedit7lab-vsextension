@@ -30,7 +30,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
         webviewView.webview.onDidReceiveMessage(
             async (message) => {
                 switch (message.type) {
-                    case 'SAVE_FOCAS_FILE':
+                    case 'SAVE_PTM_FILE':
                         try {
                             if (!vscode.workspace.workspaceFolders) {
                                 vscode.window.showErrorMessage("Open a workspace folder first to pull files.");
@@ -72,10 +72,10 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                             await vscode.commands.executeCommand('vscode.openWith', vscode.Uri.file(filePath), 'nccode7lab.editor');
                             vscode.window.showInformationMessage(`Pulled ${targetFileName} to workspace.`);
                         } catch (err) {
-                            vscode.window.showErrorMessage(`Failed to pull FOCAS file: ${err}`);
+                            vscode.window.showErrorMessage(`Failed to pull PTM file: ${err}`);
                         }
                         break;
-                    case 'COMPARE_FOCAS_FILE':
+                    case 'COMPARE_PTM_FILE':
                         try {
                             if (!vscode.workspace.workspaceFolders) {
                                 vscode.window.showErrorMessage("Open a workspace folder first to compare files.");
@@ -112,7 +112,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                                 `Local vs Machine: ${message.fileName}`
                             );
                         } catch (err) {
-                            vscode.window.showErrorMessage(`Failed to compare FOCAS file: ${err}`);
+                            vscode.window.showErrorMessage(`Failed to compare PTM file: ${err}`);
                         }
                         break;
                     case 'UPLOAD_DROPPED_VSCODE_FILE':
@@ -163,7 +163,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
         return this.postMessage({ type: 'UPDATE_CONFIG', config });
     }
 
-    public async reveal(tab?: 'variables' | 'errors' | 'focas', channel?: string): Promise<void> {
+    public async reveal(tab?: 'variables' | 'errors' | 'ptm', channel?: string): Promise<void> {
         await vscode.commands.executeCommand('workbench.action.focusPanel');
         await vscode.commands.executeCommand('workbench.view.extension.nccode7labBottomPanel');
 
@@ -189,12 +189,12 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                     return `${attr}="${basePathUri.toString()}/${filePath}"`;
                 });
 
-                const focasConfig = vscode.workspace.getConfiguration('nccode7lab.focas');
+                const ptmConfig = vscode.workspace.getConfiguration('nccode7lab.ptm');
                 const layoutConfig = vscode.workspace.getConfiguration('nccode7lab.layout');
                 const themeMode = vscode.workspace.getConfiguration('nccode7lab').get<string>('theme.mode') || 'vscode';
-                const defaultIp = focasConfig.get<string>('defaultIpAddress') || 'DEMO';
-                const focasPlacement = layoutConfig.get<string>('focasPlacement') || 'external-panel';
-                const showFocasTransfer = vscode.workspace.getConfiguration('nccode7lab').get<boolean>('showFocasTransfer') ?? false;
+                const defaultIp = ptmConfig.get<string>('defaultIpAddress') || 'DEMO';
+                const ptmPlacement = layoutConfig.get<string>('ptmPlacement') || 'external-panel';
+                const showPtmTransfer = vscode.workspace.getConfiguration('nccode7lab').get<boolean>('showPtmTransfer') ?? false;
                 const showDrawPanel = vscode.workspace.getConfiguration('nccode7lab').get<boolean>('showDrawPanel') ?? true;
                 const backendBaseUrl = vscode.workspace.getConfiguration('nccode7lab').get<string>('backendBaseUrl')?.trim() || `http://127.0.0.1:${this._backendPort}`;
 
@@ -203,15 +203,15 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                 <script>
                     window.backendPort = ${this._backendPort};
                     window.backendBaseUrl = "${backendBaseUrl}";
-                    window.focasDefaultIp = "${defaultIp}";
+                    window.ptmDefaultIp = "${defaultIp}";
                     window.vscodeConfig = {
                         backendPort: ${this._backendPort},
                         backendBaseUrl: "${backendBaseUrl}",
-                        focasDefaultIp: "${defaultIp}",
+                        ptmDefaultIp: "${defaultIp}",
                         themeMode: "${themeMode}",
                         hostMode: "vscode-panel",
-                        focasPlacement: "${focasPlacement}",
-                        showFocasTransfer: ${showFocasTransfer},
+                        ptmPlacement: "${ptmPlacement}",
+                        showPtmTransfer: ${showPtmTransfer},
                         showDrawPanel: ${showDrawPanel}
                     };
                     window.vscodeApi = window.vscodeApi || acquireVsCodeApi();

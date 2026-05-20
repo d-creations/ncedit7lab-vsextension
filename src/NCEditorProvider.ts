@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
-type WorkbenchTab = 'variables' | 'errors' | 'focas';
+type WorkbenchTab = 'variables' | 'errors' | 'ptm';
 
 type EditorRelayMessage =
     | { type: 'FILES_OPENED'; isSingleFile: boolean; activeChannel: string; channels: Record<string, string> }
@@ -407,12 +407,12 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                     return `${attr}="${basePathUri.toString()}/${filePath}"`;
                 });
 
-                const focasConfig = vscode.workspace.getConfiguration('nccode7lab.focas');
+                const ptmConfig = vscode.workspace.getConfiguration('nccode7lab.ptm');
                 const layoutConfig = vscode.workspace.getConfiguration('nccode7lab.layout');
-                const defaultIp = focasConfig.get<string>('defaultIpAddress') || '192.168.1.1';
+                const defaultIp = ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1';
                 const themeMode = vscode.workspace.getConfiguration('nccode7lab').get<string>('theme.mode') || 'vscode';
-                const focasPlacement = layoutConfig.get<string>('focasPlacement') || 'external-panel';
-                const showFocasTransfer = vscode.workspace.getConfiguration('nccode7lab').get<boolean>('showFocasTransfer') ?? false;
+                const ptmPlacement = layoutConfig.get<string>('ptmPlacement') || 'external-panel';
+                const showPtmTransfer = vscode.workspace.getConfiguration('nccode7lab').get<boolean>('showPtmTransfer') ?? false;
                 const showDrawPanel = vscode.workspace.getConfiguration('nccode7lab').get<boolean>('showDrawPanel') ?? true;
                 const backendBaseUrl = vscode.workspace.getConfiguration('nccode7lab').get<string>('backendBaseUrl')?.trim() || `http://127.0.0.1:${this.backendPort}`;
 
@@ -420,15 +420,15 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                 <script>
                     window.backendPort = ${this.backendPort};
                     window.backendBaseUrl = "${backendBaseUrl}";
-                    window.focasDefaultIp = "${defaultIp}";
+                    window.ptmDefaultIp = "${defaultIp}";
                     window.vscodeConfig = {
                         backendPort: ${this.backendPort},
                         backendBaseUrl: "${backendBaseUrl}",
-                        focasDefaultIp: "${defaultIp}",
+                        ptmDefaultIp: "${defaultIp}",
                         themeMode: "${themeMode}",
                         hostMode: "vscode-editor",
-                        focasPlacement: "${focasPlacement}",
-                        showFocasTransfer: ${showFocasTransfer},
+                        ptmPlacement: "${ptmPlacement}",
+                        showPtmTransfer: ${showPtmTransfer},
                         showDrawPanel: ${showDrawPanel}
                     };
                     window.vscodeApi = window.vscodeApi || acquireVsCodeApi();
