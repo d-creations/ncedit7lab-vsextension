@@ -30,7 +30,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
         webviewView.webview.onDidReceiveMessage(
             async (message) => {
                 switch (message.type) {
-                    case 'SAVE_PTM_FILE':
+                    case 'SAVE_TRANSFER_FILE':
                         try {
                             if (!vscode.workspace.workspaceFolders) {
                                 vscode.window.showErrorMessage("Open a workspace folder first to pull files.");
@@ -75,7 +75,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                             vscode.window.showErrorMessage(`Failed to pull PTM file: ${err}`);
                         }
                         break;
-                    case 'COMPARE_PTM_FILE':
+                    case 'COMPARE_TRANSFER_FILE':
                         try {
                             if (!vscode.workspace.workspaceFolders) {
                                 vscode.window.showErrorMessage("Open a workspace folder first to compare files.");
@@ -163,7 +163,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
         return this.postMessage({ type: 'UPDATE_CONFIG', config });
     }
 
-    public async reveal(tab?: 'variables' | 'errors' | 'ptm', channel?: string): Promise<void> {
+    public async reveal(tab?: 'variables' | 'errors' | 'transfer', channel?: string): Promise<void> {
         await vscode.commands.executeCommand('workbench.action.focusPanel');
         await vscode.commands.executeCommand('workbench.view.extension.nccode7labBottomPanel');
 

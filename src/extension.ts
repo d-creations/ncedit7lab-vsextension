@@ -6,7 +6,7 @@ import * as net from 'net';
 import { NCEditorProvider } from './NCEditorProvider';
 import { WorkbenchPanelWebviewViewProvider } from './BottomViewProvider';
 
-type WorkbenchTab = 'variables' | 'errors' | 'ptm';
+type WorkbenchTab = 'variables' | 'errors' | 'transfer';
 
 let backendProcess: cp.ChildProcess | undefined;
 
@@ -75,7 +75,7 @@ export async function activate(context: vscode.ExtensionContext) {
     });
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('nccode7lab.openWorkbenchPanel', async (tab?: 'variables' | 'errors' | 'ptm') => {
+        vscode.commands.registerCommand('nccode7lab.openWorkbenchPanel', async (tab?: 'variables' | 'errors' | 'transfer') => {
             await workbenchPanelProvider.reveal(tab);
         })
     );

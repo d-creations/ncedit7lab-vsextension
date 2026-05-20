@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
-type WorkbenchTab = 'variables' | 'errors' | 'ptm';
+type WorkbenchTab = 'variables' | 'errors' | 'transfer';
 
 type EditorRelayMessage =
     | { type: 'FILES_OPENED'; isSingleFile: boolean; activeChannel: string; channels: Record<string, string> }
