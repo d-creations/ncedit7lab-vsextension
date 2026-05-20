@@ -7,13 +7,13 @@
 
   "description": "Custom Editor for CNC files like NC/MPF PA P1 P2 P3 M S and more, with integrated  workbench panel for CNC data visualization.",
 
-  "version": "1.0.5",
+  "version": "1.0.7",
 
   "repository": {
 
     "type": "git",
 
-    "url": https://github.com/d-creations/nccode7lab-vsextension.git
+    "url": "https://github.com/d-creations/nccode7lab-vsextension.git"
 
   },
 

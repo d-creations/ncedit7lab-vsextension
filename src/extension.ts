@@ -181,7 +181,6 @@ export async function activate(context: vscode.ExtensionContext) {
             if (msg.includes('[VSCODE_NOTIFICATION] ERROR:')) {
                 const text = msg.split('[VSCODE_NOTIFICATION] ERROR:')[1].trim();
                 vscode.window.showErrorMessage(text);
-                outputChannel.show(true);
             }
         });
 		backendProcess.stderr?.on('data', data => {
