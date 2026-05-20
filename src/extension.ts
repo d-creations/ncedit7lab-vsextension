@@ -80,6 +80,28 @@ export async function activate(context: vscode.ExtensionContext) {
         })
     );
 
+    context.subscriptions.push(
+        vscode.commands.registerCommand('nccode7lab.find', () => {
+            const activePanel = editorProvider.getActiveWebviewPanel();
+            if (activePanel) {
+                // Post message to Webview asking frontend to handle Search/Find
+                activePanel.webview.postMessage({ type: 'TRIGGER_FIND' });
+            } else {
+                // Fallback to native find if the panel is not active
+                vscode.commands.executeCommand('editor.action.startFindReplaceAction');
+            }
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('nccode7lab.replace', () => {
+            const activePanel = editorProvider.getActiveWebviewPanel();
+            if (activePanel) {
+                activePanel.webview.postMessage({ type: 'TRIGGER_REPLACE' });
+            }
+        })
+    );
+
     // Register our custom editor provider
     context.subscriptions.push(
         vscode.window.registerCustomEditorProvider(
@@ -127,23 +149,63 @@ export async function activate(context: vscode.ExtensionContext) {
     } else if (!backendDir) {
         console.warn(`Embedded backend not found. Checked: ${backendCandidates.join(', ')}`);
     } else {
-        console.log(`Starting embedded backend from: ${pythonPath} on port ${backendPort}`);
+        const outputChannel = vscode.window.createOutputChannel('NC-CODE7Lab Backend');
+        outputChannel.appendLine(`Starting embedded backend from: ${pythonPath} on port ${backendPort}`);
 
-    backendProcess = cp.spawn(pythonPath, ['-m', 'uvicorn', 'main_import:app', '--app-dir', backendDir, '--port', backendPort.toString()], {
-        cwd: backendDir,
-        detached: false,
-        env: {
-            ...process.env,
-            ALLOWED_ORIGINS: '*',
-            ALLOW_CREDENTIALS: 'false',
-        },
-    });
+        backendProcess = cp.spawn(pythonPath, ['-m', 'uvicorn', 'main_import:app', '--app-dir', backendDir, '--port', backendPort.toString()], {
+            cwd: backendDir,
+            detached: false,
+            env: {
+                ...process.env,
+                ALLOWED_ORIGINS: '*',
+                ALLOW_CREDENTIALS: 'false',
+            },
+        });
 
-        backendProcess.stdout?.on('data', data => console.log(`Backend: ${data}`));
-		backendProcess.stderr?.on('data', data => console.error(`Backend Error: ${data}`));
-		backendProcess.on('error', error => console.error(`Backend process failed to start: ${error.message}`));
-		backendProcess.on('exit', code => console.log(`Backend process exited with code ${code ?? 'null'}`));
-	}
+        let hasShownSuccess = false;
+
+        backendProcess.stdout?.on('data', data => {
+            const msg = data.toString();
+            outputChannel.append(`[INFO] ${msg}`);
+            
+            if (!hasShownSuccess && (msg.includes('Application startup complete') || msg.includes('Uvicorn running on'))) {
+                hasShownSuccess = true;
+                vscode.window.showInformationMessage('NC-CODE7Lab FOCAS Backend started successfully.');
+            }
+
+            // Listen for deliberate notifications triggered by Python backend transfers
+            if (msg.includes('[VSCODE_NOTIFICATION] SUCCESS:')) {
+                const text = msg.split('[VSCODE_NOTIFICATION] SUCCESS:')[1].trim();
+                vscode.window.showInformationMessage(text);
+            }
+            if (msg.includes('[VSCODE_NOTIFICATION] ERROR:')) {
+                const text = msg.split('[VSCODE_NOTIFICATION] ERROR:')[1].trim();
+                vscode.window.showErrorMessage(text);
+                outputChannel.show(true);
+            }
+        });
+		backendProcess.stderr?.on('data', data => {
+            const msg = data.toString();
+            outputChannel.append(`[ERROR] ${msg}`);
+            // Uvicorn sometimes logs startup success to stderr depending on configuration
+            if (!hasShownSuccess && (msg.includes('Application startup complete') || msg.includes('Uvicorn running on'))) {
+                hasShownSuccess = true;
+                vscode.window.showInformationMessage('NC-CODE7Lab FOCAS Backend started successfully.');
+            }
+        });
+		backendProcess.on('error', error => {
+            outputChannel.append(`[PROCESS ERROR] Failed to start: ${error.message}\n`);
+            outputChannel.show(true);
+            vscode.window.showErrorMessage(`NC-CODE7Lab Backend failed to start: ${error.message}`);
+        });
+		backendProcess.on('exit', code => {
+            outputChannel.append(`[PROCESS EXIT] Exited with code ${code ?? 'null'}\n`);
+            if (code !== 0 && code !== null) {
+                outputChannel.show(true);
+                vscode.window.showErrorMessage(`NC-CODE7Lab Backend unexpectedly crashed (code ${code}). Check Output panel for details.`);
+            }
+        });
+    }
 }
 
 export function deactivate() {

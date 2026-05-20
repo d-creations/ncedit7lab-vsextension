@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const PYTHON_VERSION = '3.11.9';
+const PYTHON_VERSION = '3.14.4';
 const BITS = '64'; // AMD64
 const ZIP_NAME = `python-${PYTHON_VERSION}-embed-amd64.zip`;
 const DOWNLOAD_URL = `https://www.python.org/ftp/python/${PYTHON_VERSION}/${ZIP_NAME}`;
@@ -78,8 +78,8 @@ async function main() {
                 await downloadFile('https://bootstrap.pypa.io/get-pip.py', getPipPath);
             }
 
-            // Uncomment the python311._pth import site line
-            const pthFile = path.join(DEST_DIR, `python311._pth`);
+            // Uncomment the python314._pth import site line
+            const pthFile = path.join(DEST_DIR, `python314._pth`);
             if (fs.existsSync(pthFile)) {
                 let pthContent = fs.readFileSync(pthFile, 'utf8');
                 pthContent = pthContent.replace('#import site', 'import site');
@@ -105,7 +105,7 @@ async function main() {
             }
         }
 
-        console.log('Python 3.11 environment is ready!');
+        console.log('Python 3.14 environment is ready!');
     } catch (e) {
         console.error('Error:', e);
         process.exit(1);

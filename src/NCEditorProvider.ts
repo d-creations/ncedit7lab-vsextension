@@ -375,6 +375,10 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
         });
     }
 
+    public getActiveWebviewPanel(): vscode.WebviewPanel | undefined {
+        return this.activeWebviewPanel;
+    }
+
     public updateConfig(config: Record<string, unknown>): void {
         this.webviewPanels.forEach((panel) => {
             panel.webview.postMessage({ type: 'UPDATE_CONFIG', config });
@@ -408,6 +412,8 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                 const defaultIp = focasConfig.get<string>('defaultIpAddress') || '192.168.1.1';
                 const themeMode = vscode.workspace.getConfiguration('nccode7lab').get<string>('theme.mode') || 'vscode';
                 const focasPlacement = layoutConfig.get<string>('focasPlacement') || 'external-panel';
+                const showFocasTransfer = vscode.workspace.getConfiguration('nccode7lab').get<boolean>('showFocasTransfer') ?? false;
+                const showDrawPanel = vscode.workspace.getConfiguration('nccode7lab').get<boolean>('showDrawPanel') ?? true;
                 const backendBaseUrl = vscode.workspace.getConfiguration('nccode7lab').get<string>('backendBaseUrl')?.trim() || `http://127.0.0.1:${this.backendPort}`;
 
                 const scriptInjection = `
@@ -421,7 +427,9 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                         focasDefaultIp: "${defaultIp}",
                         themeMode: "${themeMode}",
                         hostMode: "vscode-editor",
-                        focasPlacement: "${focasPlacement}"
+                        focasPlacement: "${focasPlacement}",
+                        showFocasTransfer: ${showFocasTransfer},
+                        showDrawPanel: ${showDrawPanel}
                     };
                     window.vscodeApi = window.vscodeApi || acquireVsCodeApi();
                     window.addEventListener('message', event => {

@@ -75,6 +75,46 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                             vscode.window.showErrorMessage(`Failed to pull FOCAS file: ${err}`);
                         }
                         break;
+                    case 'COMPARE_FOCAS_FILE':
+                        try {
+                            if (!vscode.workspace.workspaceFolders) {
+                                vscode.window.showErrorMessage("Open a workspace folder first to compare files.");
+                                return;
+                            }
+                            const wsRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
+                            const localFileUri = vscode.Uri.file(path.join(wsRoot, message.fileName));
+                            
+                            // Check if local file exists
+                            if (!fs.existsSync(localFileUri.fsPath)) {
+                                vscode.window.showErrorMessage(`File ${message.fileName} does not exist in workspace. Pull it first to compare.`);
+                                return;
+                            }
+
+                            const localData = await vscode.workspace.fs.readFile(localFileUri);
+                            const localContent = Buffer.from(localData).toString('utf8');
+
+                            // Create virtual .txt documents so VS Code uses the native text diff instead of the custom editor
+                            const tempLocalUri = vscode.Uri.parse(`untitled:Local_${message.fileName}.txt`);
+                            const tempRemoteUri = vscode.Uri.parse(`untitled:Machine_${message.fileName}.txt`);
+
+                            const editLocal = new vscode.WorkspaceEdit();
+                            editLocal.insert(tempLocalUri, new vscode.Position(0, 0), localContent);
+                            await vscode.workspace.applyEdit(editLocal);
+
+                            const editRemote = new vscode.WorkspaceEdit();
+                            editRemote.insert(tempRemoteUri, new vscode.Position(0, 0), message.content);
+                            await vscode.workspace.applyEdit(editRemote);
+
+                            vscode.commands.executeCommand(
+                                'vscode.diff',
+                                tempLocalUri,
+                                tempRemoteUri,
+                                `Local vs Machine: ${message.fileName}`
+                            );
+                        } catch (err) {
+                            vscode.window.showErrorMessage(`Failed to compare FOCAS file: ${err}`);
+                        }
+                        break;
                     case 'UPLOAD_DROPPED_VSCODE_FILE':
                         try {
                             let targetFsPath = '';
@@ -100,7 +140,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                             // Read the file and send back to WebView to perform the upload
                             const fileContent = fs.readFileSync(targetFsPath, 'utf8');
                             webviewView.webview.postMessage({
-                                type: 'DO_FOCAS_UPLOAD',
+                                type: 'DO_FOCfAS_UPLOAD',
                                 pathId: message.pathId,
                                 content: fileContent
                             });
@@ -150,8 +190,12 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                 });
 
                 const focasConfig = vscode.workspace.getConfiguration('nccode7lab.focas');
+                const layoutConfig = vscode.workspace.getConfiguration('nccode7lab.layout');
                 const themeMode = vscode.workspace.getConfiguration('nccode7lab').get<string>('theme.mode') || 'vscode';
                 const defaultIp = focasConfig.get<string>('defaultIpAddress') || 'DEMO';
+                const focasPlacement = layoutConfig.get<string>('focasPlacement') || 'external-panel';
+                const showFocasTransfer = vscode.workspace.getConfiguration('nccode7lab').get<boolean>('showFocasTransfer') ?? false;
+                const showDrawPanel = vscode.workspace.getConfiguration('nccode7lab').get<boolean>('showDrawPanel') ?? true;
                 const backendBaseUrl = vscode.workspace.getConfiguration('nccode7lab').get<string>('backendBaseUrl')?.trim() || `http://127.0.0.1:${this._backendPort}`;
 
                 // Inject our configuration
@@ -166,7 +210,9 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                         focasDefaultIp: "${defaultIp}",
                         themeMode: "${themeMode}",
                         hostMode: "vscode-panel",
-                        focasPlacement: "disabled"
+                        focasPlacement: "${focasPlacement}",
+                        showFocasTransfer: ${showFocasTransfer},
+                        showDrawPanel: ${showDrawPanel}
                     };
                     window.vscodeApi = window.vscodeApi || acquireVsCodeApi();
                     window.addEventListener('message', event => {
