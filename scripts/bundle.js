@@ -10,7 +10,7 @@ const bundleDir = path.join(extensionDir, 'bundle');
 
 const localPythonDir = path.join(extensionDir, 'python_embedded');
 
-const packagedBackendDir = path.join(extensionDir, 'node_modules', 'nccode7lab', 'backend');
+const packagedBackendDir = path.join(extensionDir, 'node_modules', 'ncedit7lab', 'backend');
 
 const localMachinesConfig = path.join(localPythonDir, 'Lib', 'site-packages', 'ncplot7py', 'config', 'machines.json');
 
@@ -128,13 +128,13 @@ if (fs.existsSync(localPythonDir)) {
 
 if (fs.existsSync(packagedBackendDir)) {
 
-    console.log(`Copying nccode7lab backend to ${destBackend}...`);
+    console.log(`Copying ncedit7lab backend to ${destBackend}...`);
 
     copyFolderSync(packagedBackendDir, destBackend);
 
 } else {
 
-    console.warn(`Warning: Could not find ${packagedBackendDir}. Make sure nccode7lab is installed.`);
+    console.warn(`Warning: Could not find ${packagedBackendDir}. Make sure ncedit7lab is installed.`);
 
 }
 

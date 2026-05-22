@@ -24,18 +24,22 @@ async function getFreePort(): Promise<number> {
 export async function activate(context: vscode.ExtensionContext) {
 	const backendPort = await getFreePort();
 	const getBackendBaseUrl = () => {
-		const configuredBaseUrl = vscode.workspace.getConfiguration('nccode7lab').get<string>('backendBaseUrl')?.trim();
+		const configuredBaseUrl = vscode.workspace.getConfiguration('ncedit7lab').get<string>('backendBaseUrl')?.trim();
 		return configuredBaseUrl || `http://127.0.0.1:${backendPort}`;
 	};
 
     const getEditorWebviewConfig = () => {
-        const ptmConfig = vscode.workspace.getConfiguration('nccode7lab.ptm');
-        const layoutConfig = vscode.workspace.getConfiguration('nccode7lab.layout');
-        const themeMode = vscode.workspace.getConfiguration('nccode7lab').get<string>('theme.mode') || 'vscode';
+        const ptmConfig = vscode.workspace.getConfiguration('ncedit7lab.ptm');
+        const layoutConfig = vscode.workspace.getConfiguration('ncedit7lab.layout');
+        const transferConfig = vscode.workspace.getConfiguration('ncedit7lab');
+        const themeMode = vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode';
         return {
             backendPort,
             backendBaseUrl: getBackendBaseUrl(),
             ptmDefaultIp: ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1',
+            transferDefaultIp: ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1',
+            transferProtocol: transferConfig.get<string>('transferProtocol') || 'none',
+            transferDriverPath: transferConfig.get<string>('transferDriverPath') || '',
             themeMode,
             hostMode: 'vscode-editor',
             ptmPlacement: layoutConfig.get<string>('ptmPlacement') || 'external-panel',
@@ -43,12 +47,16 @@ export async function activate(context: vscode.ExtensionContext) {
     };
 
     const getPanelWebviewConfig = () => {
-        const ptmConfig = vscode.workspace.getConfiguration('nccode7lab.ptm');
-        const themeMode = vscode.workspace.getConfiguration('nccode7lab').get<string>('theme.mode') || 'vscode';
+        const ptmConfig = vscode.workspace.getConfiguration('ncedit7lab.ptm');
+        const transferConfig = vscode.workspace.getConfiguration('ncedit7lab');
+        const themeMode = vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode';
         return {
             backendPort,
             backendBaseUrl: getBackendBaseUrl(),
             ptmDefaultIp: ptmConfig.get<string>('defaultIpAddress') || 'DEMO',
+            transferDefaultIp: ptmConfig.get<string>('defaultIpAddress') || 'DEMO',
+            transferProtocol: transferConfig.get<string>('transferProtocol') || 'none',
+            transferDriverPath: transferConfig.get<string>('transferDriverPath') || '',
             themeMode,
             hostMode: 'vscode-panel',
             ptmPlacement: 'disabled',
@@ -75,13 +83,13 @@ export async function activate(context: vscode.ExtensionContext) {
     });
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('nccode7lab.openWorkbenchPanel', async (tab?: 'variables' | 'errors' | 'transfer') => {
+        vscode.commands.registerCommand('ncedit7lab.openWorkbenchPanel', async (tab?: 'variables' | 'errors' | 'transfer') => {
             await workbenchPanelProvider.reveal(tab);
         })
     );
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('nccode7lab.find', () => {
+        vscode.commands.registerCommand('ncedit7lab.find', () => {
             const activePanel = editorProvider.getActiveWebviewPanel();
             if (activePanel) {
                 // Post message to Webview asking frontend to handle Search/Find
@@ -94,7 +102,7 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('nccode7lab.replace', () => {
+        vscode.commands.registerCommand('ncedit7lab.replace', () => {
             const activePanel = editorProvider.getActiveWebviewPanel();
             if (activePanel) {
                 activePanel.webview.postMessage({ type: 'TRIGGER_REPLACE' });
@@ -123,9 +131,9 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration((event) => {
             if (
-                event.affectsConfiguration('nccode7lab') ||
-                event.affectsConfiguration('nccode7lab.ptm') ||
-                event.affectsConfiguration('nccode7lab.layout')
+                event.affectsConfiguration('ncedit7lab') ||
+                event.affectsConfiguration('ncedit7lab.ptm') ||
+                event.affectsConfiguration('ncedit7lab.layout')
             ) {
                 editorProvider.updateConfig(getEditorWebviewConfig());
                 void workbenchPanelProvider.updateConfig(getPanelWebviewConfig());
@@ -140,7 +148,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const pythonPath = pythonCandidates.find(candidate => fs.existsSync(candidate));
     const backendCandidates = [
         path.join(context.extensionPath, 'bundle', 'backend'),
-        path.join(context.extensionPath, 'node_modules', 'nccode7lab', 'backend'),
+        path.join(context.extensionPath, 'node_modules', 'ncedit7lab', 'backend'),
     ];
     const backendDir = backendCandidates.find(candidate => fs.existsSync(candidate));
 

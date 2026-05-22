@@ -1,9 +1,9 @@
 {
   "name": "ncedit7lab-extension",
   "publisher": "d-creations",
-  "displayName": "NCEdit7Lab",
+  "displayName": "NC-CODE7Lab",
   "description": "Custom Editor for CNC files like NC/MPF PA P1 P2 P3 M S and more, with integrated  workbench panel for CNC data visualization.",
-  "version": "1.0.0",
+  "version": "1.0.8",
   "repository": {
     "type": "git",
     "url": "https://github.com/d-creations/ncedit7lab-vsextension.git"
@@ -138,6 +138,16 @@
     "configuration": {
       "title": "ncedit7lab",
       "properties": {
+        "ncedit7lab.backendBaseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Optional absolute backend base URL override. Leave empty to use the embedded local backend."
+        },
+        "ncedit7lab.ptm.defaultIpAddress": {
+          "type": "string",
+          "default": "DEMO",
+          "description": "Default IP Address to use for the PTM CNC connection."
+        },
         "ncedit7lab.theme.mode": {
           "type": "string",
           "enum": [
@@ -145,8 +155,44 @@
             "one-dark",
             "light"
           ],
-          "default": "light",
+          "default": "vscode",
           "description": "Theme mode used inside ncedit7lab webviews."
+        },
+        "ncedit7lab.layout.ptmPlacement": {
+          "type": "string",
+          "enum": [
+            "side-panel",
+            "bottom-panel",
+            "external-panel",
+            "disabled"
+          ],
+          "default": "external-panel",
+          "description": "Where PTM should appear inside the VS Code custom editor host."
+        },
+        "ncedit7lab.showDrawPanel": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the Draw panel in ncedit7lab."
+        },
+        "ncedit7lab.transferProtocol": {
+          "type": "string",
+          "enum": [
+            "none",
+            "focas",
+            "ftp"
+          ],
+          "default": "none",
+          "description": "Which protocol to use for CNC file transfer features in ncedit7lab. 'focas' uses the FOCAS library to transfer files directly to the CNC machine, while 'ftp' uses FTP protocol for file transfer. 'none' disables the transfer features."
+        },
+        "ncedit7lab.transferDriverPath": {
+          "type": "string",
+          "default": "C:\\Drivers\\ncedit7",
+          "description": "Path to the transfer driver."
+        },
+        "ncedit7lab.showPtmTransfer": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show the Ptm Transfer in ncedit7lab."
         }
       }
     }
