@@ -1,9 +1,9 @@
 # nccode7lab-vsextension
 
-A VS Code extension for the NCCode7Lab CNC Editor.
+A VS Code extension for the NCEdit7Lab CNC Editor.
 
 ## Features
-- Fully integrated NCCode7Lab CNC editor within VS Code.
+- Fully integrated NCEdit7Lab CNC editor within VS Code.
 - Embedded Python backend for standalone processing (Focas services, NC plotting).
 - Seamlessly packaged and ready for offline enterprise environments.
 
@@ -18,7 +18,7 @@ npm run bundle
 ```
 
 This command will sequentially:
-1. `setup:python`: Download and extract embedded Python (3.11).
+1. `setup:python`: Download and extract embedded Python (3.14).
 2. `generate:licenses`: Extract dependency licenses for Node and Python, generating the `ThirdPartyNotices.txt` file.
 3. Pull in required UI assets to the distribution bundle.
 
