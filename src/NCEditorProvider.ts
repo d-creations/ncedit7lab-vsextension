@@ -109,11 +109,26 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
     }
 
     private assemblePAFile(header: string, channels: Map<string, string>) {
-        let res = header.trimEnd() + '\n';
+        let res = header.trimEnd() + (header.trimEnd() ? '\n' : '');
+        
+        let progName = 'O0001';
+        for (let i = 1; i <= 3; i++) {
+            const text = channels.get(i.toString()) || '';
+            const match = text.match(/<(O[A-Za-z0-9_]+)\.P[1-3]>/);
+            if (match) {
+                progName = match[1];
+                break;
+            }
+        }
+
         for (let i = 1; i <= 3; i++) {
             const ch = i.toString();
             if (channels.has(ch)) {
-                res += channels.get(ch)?.trimEnd() + '\n\n';
+                let text = channels.get(ch)?.trimEnd() || '';
+                if (!text.match(/^<O[A-Za-z0-9_]+\.P[1-3]>/)) {
+                    text = `<${progName}.P${i}>\n${text}`;
+                }
+                res += text + '\n\n';
             }
         }
         return res.trim() + '\n';
