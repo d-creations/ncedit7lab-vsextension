@@ -19,6 +19,7 @@ export class NCDocument implements vscode.CustomDocument {
     public readonly activeChannel: string;
     public channelsContent = new Map<string, string>();
     public paHeaderContent = '';
+    public paProgramName = 'O0001';
     public channelUris = new Map<string, vscode.Uri>();
     public baseName: string;
 
@@ -92,31 +93,42 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
         const channels = new Map<string, string>();
         const regex = /(<O[A-Za-z0-9_]+\.P[1-3]>)/g;
         const parts = content.split(regex);
-        
         const header = parts[0] || '';
+        let programName = 'O0001';
         
         for (let i = 1; i < parts.length; i += 2) {
             const marker = parts[i];
             const text = parts[i+1] || '';
-            const chMatch = marker.match(/\.P([1-3])>/);
+            const chMatch = marker.match(/^<(O[A-Za-z0-9_]+)\.P([1-3])>$/);
             if (chMatch) {
-                channels.set(chMatch[1], marker + text);
+                programName = chMatch[1];
+                const channel = chMatch[2];
+                const body = text.replace(/^\r?\n/, '');
+                channels.set(channel, `${programName}\n${body}`.trimEnd());
             }
         }
-        
-        if (channels.size === 0) channels.set('1', content);
-        return { header, channels };
+
+        if (channels.size === 0) {
+            const normalizedContent = content.trimEnd();
+            const firstLine = normalizedContent.split(/\r?\n/, 1)[0]?.trim();
+            if (firstLine && /^O[A-Za-z0-9_]+$/.test(firstLine)) {
+                programName = firstLine;
+            }
+            channels.set('1', normalizedContent);
+        }
+
+        return { header, channels, programName };
     }
 
-    private assemblePAFile(header: string, channels: Map<string, string>) {
+    private assemblePAFile(header: string, channels: Map<string, string>, fallbackProgramName = 'O0001') {
         let res = header.trimEnd() + (header.trimEnd() ? '\n' : '');
-        
-        let progName = 'O0001';
+
+        let progName = fallbackProgramName;
         for (let i = 1; i <= 3; i++) {
             const text = channels.get(i.toString()) || '';
-            const match = text.match(/<(O[A-Za-z0-9_]+)\.P[1-3]>/);
-            if (match) {
-                progName = match[1];
+            const firstLine = text.split(/\r?\n/, 1)[0]?.trim();
+            if (firstLine && /^O[A-Za-z0-9_]+$/.test(firstLine)) {
+                progName = firstLine;
                 break;
             }
         }
@@ -125,8 +137,13 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
             const ch = i.toString();
             if (channels.has(ch)) {
                 let text = channels.get(ch)?.trimEnd() || '';
-                if (!text.match(/^<O[A-Za-z0-9_]+\.P[1-3]>/)) {
-                    text = `<${progName}.P${i}>\n${text}`;
+                const lines = text.split(/\r?\n/);
+                const firstLine = lines[0]?.trim();
+                const channelProgramName = firstLine && /^O[A-Za-z0-9_]+$/.test(firstLine) ? firstLine : progName;
+                const body = (firstLine && /^O[A-Za-z0-9_]+$/.test(firstLine) ? lines.slice(1).join('\n') : text).trimEnd();
+                text = `<${channelProgramName}.P${i}>`;
+                if (body) {
+                    text += `\n${body}`;
                 }
                 res += text + '\n\n';
             }
@@ -176,6 +193,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                 const parsed = this.parsePAFile(textData);
                 document.channelsContent = parsed.channels;
                 document.paHeaderContent = parsed.header;
+                document.paProgramName = parsed.programName;
             } else {
                 document.channelsContent.set(activeChannel, textData);
                 document.channelUris.set(activeChannel, uri);
@@ -191,6 +209,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                 const parsed = this.parsePAFile(textData);
                 document.channelsContent = parsed.channels;
                 document.paHeaderContent = parsed.header;
+                document.paProgramName = parsed.programName;
             } else {
                 document.channelsContent.set(activeChannel, textData);
                 document.channelUris.set(activeChannel, uri);
@@ -205,7 +224,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
 
     public async saveCustomDocument(document: NCDocument, cancellation: vscode.CancellationToken): Promise<void> {
         if (document.isSingleFile) {
-            const assembled = this.assemblePAFile(document.paHeaderContent, document.channelsContent);
+            const assembled = this.assemblePAFile(document.paHeaderContent, document.channelsContent, document.paProgramName);
             await vscode.workspace.fs.writeFile(document.uri, Buffer.from(assembled, 'utf8'));
         } else {
             for (const [ch, uri] of document.channelUris.entries()) {
@@ -218,7 +237,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
     public async saveCustomDocumentAs(document: NCDocument, destination: vscode.Uri, cancellation: vscode.CancellationToken): Promise<void> {
         // Implement as-needed, for simplicity we treat it as saving the current document instance's layout but to a new path.
         if (document.isSingleFile) {
-            const assembled = this.assemblePAFile(document.paHeaderContent, document.channelsContent);
+            const assembled = this.assemblePAFile(document.paHeaderContent, document.channelsContent, document.paProgramName);
             await vscode.workspace.fs.writeFile(destination, Buffer.from(assembled, 'utf8'));
         } else {
             const dir = vscode.Uri.joinPath(destination, '..');
@@ -251,6 +270,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                 const parsed = this.parsePAFile(textData);
                 document.channelsContent = parsed.channels;
                 document.paHeaderContent = parsed.header;
+                document.paProgramName = parsed.programName;
             } else {
                 document.channelsContent.set(activeChannel, textData);
                 document.channelUris.set(activeChannel, document.uri);
@@ -271,7 +291,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
         const dest = context.destination;
         let backupData = '';
         if (document.isSingleFile) {
-            backupData = this.assemblePAFile(document.paHeaderContent, document.channelsContent);
+            backupData = this.assemblePAFile(document.paHeaderContent, document.channelsContent, document.paProgramName);
         } else {
             const backupObj: Record<string, string> = Object.fromEntries(document.channelsContent);
             backupData = JSON.stringify(backupObj);
