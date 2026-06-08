@@ -3,7 +3,7 @@
   "publisher": "d-creations",
   "displayName": "NCEdit7Lab",
   "description": "Custom Editor for CNC files like NC/MPF PA P1 P2 P3 M S and more, with integrated  workbench panel for CNC data visualization.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/d-creations/ncedit7lab-vsextension.git"
@@ -159,7 +159,7 @@
     "setup:python": "node ./scripts/download-python.js",
     "generate:licenses": "node ./scripts/generate-licenses.js",
     "bundle": "npm run setup:python && npm run generate:licenses && node ./scripts/bundle.js",
-    "package": "npx @vscode/vsce package",
+    "package": "npx @vscode/vsce package --target win32-x64",
     "package:publish": "node ./scripts/publish.js"
   },
   "dependencies": {

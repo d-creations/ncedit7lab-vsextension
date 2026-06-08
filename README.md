@@ -14,7 +14,7 @@ A fully integrated CNC Editor for VS Code, powered by ncedit7lab.
 *(TODO: Add instructions here: e.g., Open a `.nc` file, click on the NCEdit7Lab icon in the side panel, or run the command NCEdit7Lab: Start)*
 
 ## Contact & Links
-- **Feedback:** For any improvement suggestions, please email damian.roth@d-creations.org or reach out on [Instagram @d_creations91](https://www.instagram.com/d_creations91).
+- **Feedback:** For any improvement, NC Code or file extention that is not supported yet, please email damian.roth@d-creations.org or reach out on [Instagram @d_creations91](https://www.instagram.com/d_creations91).
 - **Web Version:** Try the [web version of ncedit7lab](https://ncedit7lab.d-creations.org/).
 
 ---
