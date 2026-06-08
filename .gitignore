@@ -33,7 +33,7 @@ MANIFEST
 *.spec
 
 # Generated License Notices
-ThirdPartyNotices.txt
+_ThirdPartyNotices.txt
 ThirdPartyNotices_Node.txt
 ThirdPartyNotices_Python.txt
 

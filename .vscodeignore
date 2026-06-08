@@ -22,3 +22,6 @@ bundle/python_embedded/
 *.log
 .vscode-test/
 **/*.spec.js
+PUBLISHING.md
+tsconfig.json
+package.dev.json
