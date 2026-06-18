@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
-type WorkbenchTab = 'variables' | 'errors' | 'transfer';
+type WorkbenchTab = 'variables' | 'errors' | 'transfer' | 'templates';
 
 type EditorRelayMessage =
     | { type: 'FILES_OPENED'; isSingleFile: boolean; activeChannel: string; channels: Record<string, string> }
@@ -12,6 +12,14 @@ type EditorRelayMessage =
     | { type: 'WORKBENCH_BRIDGE'; eventType: 'EXECUTION_COMPLETED'; payload: { channelId: string; result: { variableSnapshotEntries: Array<[number, number]>; errors: unknown[] } } }
     | { type: 'WORKBENCH_BRIDGE'; eventType: 'EXECUTION_ERROR'; payload: { channelId: string; error: { message: string } } }
     | { type: 'WORKBENCH_BRIDGE'; eventType: 'PLOT_CLEARED'; payload: Record<string, never> };
+
+export interface TemplateInsertRequest {
+    channelId: string;
+    content: string;
+    mode?: 'insertAtCursor' | 'replaceSelection' | 'appendToDocument' | 'newProgram' | 'replaceDocument' | string;
+    templateId?: string;
+    multiChannelContent?: Record<string, string>;
+}
 
 export class NCDocument implements vscode.CustomDocument {
     public readonly uri: vscode.Uri;
@@ -60,6 +68,8 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
 
     private readonly webviewPanels = new Set<vscode.WebviewPanel>();
     private activeWebviewPanel?: vscode.WebviewPanel;
+    private untitledTemplateCounter = 1;
+    private readonly pendingUntitledTemplates = new Map<string, { channels: Map<string, string>; activeChannel: string; programName: string }>();
 
     private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<NCDocument>>();
     public readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
@@ -185,7 +195,14 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
         _token: vscode.CancellationToken
     ): Promise<NCDocument> {
         const { isSingleFile, activeChannel, baseName } = this.analyzeUri(uri);
-        const document = new NCDocument(uri, isSingleFile, activeChannel, baseName);
+        const pendingUntitledTemplate = this.pendingUntitledTemplates.get(uri.toString());
+        const document = new NCDocument(uri, isSingleFile, pendingUntitledTemplate?.activeChannel ?? activeChannel, baseName);
+        if (pendingUntitledTemplate) {
+            this.pendingUntitledTemplates.delete(uri.toString());
+            document.channelsContent = pendingUntitledTemplate.channels;
+            document.paProgramName = pendingUntitledTemplate.programName;
+            return document;
+        }
         
         if (openContext.untitledDocumentData) {
             const textData = Buffer.from(openContext.untitledDocumentData).toString('utf8');
@@ -415,6 +432,59 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
         return this.activeWebviewPanel;
     }
 
+    public insertTemplateIntoActiveEditor(payload: TemplateInsertRequest): boolean {
+        const activePanel = this.activeWebviewPanel;
+        if (!activePanel) {
+            return false;
+        }
+
+        void activePanel.webview.postMessage({ type: 'TEMPLATE_INSERT_REQUEST', payload });
+        return true;
+    }
+
+    public async openTemplateAsUntitledProgram(payload: TemplateInsertRequest): Promise<void> {
+        const activeChannel = this.isChannelId(payload.channelId) ? payload.channelId : '1';
+        const channels = this.getTemplateChannels(payload, activeChannel);
+        const programName = this.getProgramName(channels) || 'O0001';
+        const untitledUri = vscode.Uri.parse(`untitled:Untitled-Template-${this.untitledTemplateCounter++}.PA`);
+
+        this.pendingUntitledTemplates.set(untitledUri.toString(), { channels, activeChannel, programName });
+        await vscode.commands.executeCommand('vscode.openWith', untitledUri, NCEditorProvider.viewType);
+    }
+
+    private getTemplateChannels(payload: TemplateInsertRequest, activeChannel: string): Map<string, string> {
+        const channels = new Map<string, string>();
+
+        if (payload.multiChannelContent) {
+            for (const [channel, content] of Object.entries(payload.multiChannelContent)) {
+                if (this.isChannelId(channel) && content) {
+                    channels.set(channel, content);
+                }
+            }
+        }
+
+        if (channels.size === 0 && payload.content) {
+            channels.set(activeChannel, payload.content);
+        }
+
+        return channels;
+    }
+
+    private getProgramName(channels: Map<string, string>): string | undefined {
+        for (const content of channels.values()) {
+            const firstLine = content.split(/\r?\n/, 1)[0]?.trim();
+            if (firstLine && /^O[A-Za-z0-9_]+$/.test(firstLine)) {
+                return firstLine;
+            }
+        }
+
+        return undefined;
+    }
+
+    private isChannelId(channel: string): channel is '1' | '2' | '3' {
+        return channel === '1' || channel === '2' || channel === '3';
+    }
+
     public updateConfig(config: Record<string, unknown>): void {
         this.webviewPanels.forEach((panel) => {
             panel.webview.postMessage({ type: 'UPDATE_CONFIG', config });
@@ -472,7 +542,10 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                 const ptmPlacement = layoutConfig.get<string>('ptmPlacement') || 'external-panel';
                 const showPtmTransfer = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showPtmTransfer') ?? false;
                 const showDrawPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showDrawPanel') ?? true;
+                const showTemplatesPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showTemplatesPanel') ?? true;
+                const templatesPlacement = vscode.workspace.getConfiguration('ncedit7lab').get<string>('templatesPlacement') || 'workbench-left';
                 const backendBaseUrl = vscode.workspace.getConfiguration('ncedit7lab').get<string>('backendBaseUrl')?.trim() || `http://127.0.0.1:${this.backendPort}`;
+                const templateSeedUrl = `${basePathUri.toString()}/templates.json`;
 
                 const scriptInjection = `
                 <script>
@@ -491,7 +564,13 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                         hostMode: "vscode-editor",
                         ptmPlacement: "${ptmPlacement}",
                         showPtmTransfer: ${showPtmTransfer},
-                        showDrawPanel: ${showDrawPanel}
+                        showTransferPanel: ${showPtmTransfer},
+                        showDrawPanel: ${showDrawPanel},
+                        showTemplatesPanel: ${showTemplatesPanel},
+                        templatesPlacement: "${templatesPlacement}",
+                        seedDefaultTemplates: true,
+                        templateStorageMode: "local",
+                        templateSeedUrl: "${templateSeedUrl}"
                     };
                     window.applyncedit7labTransferPatch = () => {
                         const supportedPaths = Array.isArray(window.ncedit7labSupportedTransferPaths)
@@ -645,10 +724,32 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                     };
 
                     window.vscodeApi = window.vscodeApi || acquireVsCodeApi();
+                    window.ncedit7labApplyTemplateInsert = (payload, attempt = 0) => {
+                        if (!payload || typeof payload.channelId !== 'string') {
+                            return;
+                        }
+
+                        const selector = 'nc-channel-pane[data-channel="' + payload.channelId + '"] nc-code-pane';
+                        const codePane = document.querySelector(selector) || Array.from(document.querySelectorAll('nc-code-pane')).find(pane => pane.channelId === payload.channelId);
+                        if (codePane && typeof codePane.applyTemplateInsert === 'function') {
+                            codePane.applyTemplateInsert(payload);
+                            if (codePane.editor && typeof codePane.editor.focus === 'function') {
+                                codePane.editor.focus();
+                            }
+                            return;
+                        }
+
+                        if (attempt < 20) {
+                            window.setTimeout(() => window.ncedit7labApplyTemplateInsert(payload, attempt + 1), 50);
+                        }
+                    };
                     window.addEventListener('message', event => {
                         const message = event.data;
                         if (message.type === 'FILES_OPENED' || message.type === 'FILE_UPDATED_EXTERNALLY') {
                             window.dispatchEvent(new CustomEvent('vscode:files-opened', { detail: message }));
+                        }
+                        if (message.type === 'TEMPLATE_INSERT_REQUEST') {
+                            window.ncedit7labApplyTemplateInsert(message.payload);
                         }
                     });
                     window.addEventListener('DOMContentLoaded', () => {

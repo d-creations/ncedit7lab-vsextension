@@ -765,9 +765,9 @@ SOFTWARE.
 
 
 anyio
-4.13.0
+4.14.0
 MIT
-<extension-root>\python_embedded\Lib\site-packages\anyio-4.13.0.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\anyio-4.14.0.dist-info\licenses\LICENSE
 The MIT License (MIT)
 
 Copyright (c) 2018 Alex Grönholm
@@ -858,9 +858,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 fastapi
-0.136.3
+0.137.1
 MIT
-<extension-root>\python_embedded\Lib\site-packages\fastapi-0.136.3.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\fastapi-0.137.1.dist-info\licenses\LICENSE
 The MIT License (MIT)
 
 Copyright (c) 2018 Sebastián Ramírez
@@ -1634,9 +1634,9 @@ SOFTWARE.
 
 
 starlette
-1.2.1
+1.3.1
 BSD-3-Clause
-<extension-root>\python_embedded\Lib\site-packages\starlette-1.2.1.dist-info\licenses\LICENSE.md
+<extension-root>\python_embedded\Lib\site-packages\starlette-1.3.1.dist-info\licenses\LICENSE.md
 Copyright © 2018, [Encode OSS Ltd](https://www.encode.io/).
 All rights reserved.
 

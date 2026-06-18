@@ -3,10 +3,11 @@ import * as cp from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as net from 'net';
-import { NCEditorProvider } from './NCEditorProvider';
+import { NCEditorProvider, TemplateInsertRequest } from './NCEditorProvider';
 import { WorkbenchPanelWebviewViewProvider } from './BottomViewProvider';
 
-type WorkbenchTab = 'variables' | 'errors' | 'transfer';
+type WorkbenchTab = 'variables' | 'errors' | 'transfer' | 'templates';
+type TemplatesPlacement = 'workbench-left' | 'workbench-right' | 'disabled';
 
 let backendProcess: cp.ChildProcess | undefined;
 
@@ -28,6 +29,19 @@ export async function activate(context: vscode.ExtensionContext) {
 		return configuredBaseUrl || `http://127.0.0.1:${backendPort}`;
 	};
 
+    const getTemplatesPlacement = (): TemplatesPlacement => {
+        const placement = vscode.workspace.getConfiguration('ncedit7lab').get<string>('templatesPlacement');
+        return placement === 'workbench-right' || placement === 'disabled' ? placement : 'workbench-left';
+    };
+
+    const getWorkbenchTemplatesPlacement = (): TemplatesPlacement => {
+        return getTemplatesPlacement() === 'workbench-right' ? 'workbench-right' : 'disabled';
+    };
+
+    const getTemplatesViewPlacement = (): TemplatesPlacement => {
+        return getTemplatesPlacement() === 'workbench-left' ? 'workbench-left' : 'disabled';
+    };
+
     const getEditorWebviewConfig = () => {
         const ptmConfig = vscode.workspace.getConfiguration('ncedit7lab.ptm');
         const layoutConfig = vscode.workspace.getConfiguration('ncedit7lab.layout');
@@ -43,6 +57,11 @@ export async function activate(context: vscode.ExtensionContext) {
             themeMode,
             hostMode: 'vscode-editor',
             ptmPlacement: layoutConfig.get<string>('ptmPlacement') || 'external-panel',
+            showTemplatesPanel: transferConfig.get<boolean>('showTemplatesPanel') ?? true,
+            templatesPlacement: transferConfig.get<string>('templatesPlacement') || 'workbench-left',
+            seedDefaultTemplates: true,
+            templateStorageMode: 'local',
+            templateSeedUrl: '/templates.json',
         };
     };
 
@@ -60,6 +79,11 @@ export async function activate(context: vscode.ExtensionContext) {
             themeMode,
             hostMode: 'vscode-panel',
             ptmPlacement: 'disabled',
+            showTemplatesPanel: transferConfig.get<boolean>('showTemplatesPanel') ?? true,
+            templatesPlacement: getWorkbenchTemplatesPlacement(),
+            seedDefaultTemplates: true,
+            templateStorageMode: 'local',
+            templateSeedUrl: '/templates.json',
         };
     };
 
@@ -72,19 +96,58 @@ export async function activate(context: vscode.ExtensionContext) {
         | { type: 'WORKBENCH_BRIDGE'; eventType: 'EXECUTION_ERROR'; payload: { channelId: string; error: { message: string } } }
         | { type: 'WORKBENCH_BRIDGE'; eventType: 'PLOT_CLEARED'; payload: Record<string, never> };
 
-    const workbenchPanelProvider = new WorkbenchPanelWebviewViewProvider(context.extensionUri, backendPort);
-    const editorProvider = new NCEditorProvider(context, backendPort, (message: WorkbenchRelayMessage) => {
+    let editorProvider: NCEditorProvider;
+    const handleTemplateInsertRequest = (payload: TemplateInsertRequest) => {
+        if (payload.mode === 'newProgram') {
+            void editorProvider.openTemplateAsUntitledProgram(payload);
+            return;
+        }
+
+        if (!editorProvider.insertTemplateIntoActiveEditor(payload)) {
+            vscode.window.showWarningMessage('Open an NC editor before inserting a template.');
+        }
+    };
+
+    const workbenchPanelProvider = new WorkbenchPanelWebviewViewProvider(context.extensionUri, backendPort, {
+        templatesPlacement: getWorkbenchTemplatesPlacement(),
+        onTemplateInsertRequest: handleTemplateInsertRequest,
+    });
+    const templatesPanelProvider = new WorkbenchPanelWebviewViewProvider(context.extensionUri, backendPort, {
+        viewContainerId: 'ncedit7labTemplates',
+        defaultTab: 'templates',
+        templatesPlacement: getTemplatesViewPlacement(),
+        hostMode: 'vscode-templates',
+        onTemplateInsertRequest: handleTemplateInsertRequest,
+    });
+    editorProvider = new NCEditorProvider(context, backendPort, (message: WorkbenchRelayMessage) => {
         if (message.type === 'OPEN_WORKBENCH_PANEL') {
+            if (message.tab === 'templates') {
+                void templatesPanelProvider.reveal(message.tab, message.channel);
+                return;
+            }
+
             void workbenchPanelProvider.reveal(message.tab, message.channel);
             return;
         }
 
         void workbenchPanelProvider.postMessage(message);
+        void templatesPanelProvider.postMessage(message);
     });
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('ncedit7lab.openWorkbenchPanel', async (tab?: 'variables' | 'errors' | 'transfer') => {
+        vscode.commands.registerCommand('ncedit7lab.openWorkbenchPanel', async (tab?: WorkbenchTab) => {
+            if (tab === 'templates') {
+                await templatesPanelProvider.reveal(tab);
+                return;
+            }
+
             await workbenchPanelProvider.reveal(tab);
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('ncedit7lab.openTemplates', async () => {
+            await templatesPanelProvider.reveal('templates');
         })
     );
 
@@ -128,6 +191,10 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.registerWebviewViewProvider(WorkbenchPanelWebviewViewProvider.viewType, workbenchPanelProvider)
         );
 
+        context.subscriptions.push(
+            vscode.window.registerWebviewViewProvider('ncedit7lab.templatesView', templatesPanelProvider)
+        );
+
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration((event) => {
             if (
@@ -135,8 +202,14 @@ export async function activate(context: vscode.ExtensionContext) {
                 event.affectsConfiguration('ncedit7lab.ptm') ||
                 event.affectsConfiguration('ncedit7lab.layout')
             ) {
+                workbenchPanelProvider.setTemplatesPlacement(getWorkbenchTemplatesPlacement());
+                templatesPanelProvider.setTemplatesPlacement(getTemplatesViewPlacement());
                 editorProvider.updateConfig(getEditorWebviewConfig());
                 void workbenchPanelProvider.updateConfig(getPanelWebviewConfig());
+                void templatesPanelProvider.updateConfig({
+                    ...getPanelWebviewConfig(),
+                    templatesPlacement: getTemplatesViewPlacement(),
+                });
             }
         })
     );

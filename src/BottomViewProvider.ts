@@ -2,13 +2,32 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
+type WorkbenchTab = 'variables' | 'errors' | 'transfer' | 'templates';
+
+export interface TemplateInsertRequest {
+    channelId: string;
+    content: string;
+    mode?: 'insertAtCursor' | 'replaceSelection' | 'appendToDocument' | 'newProgram' | 'replaceDocument' | string;
+    templateId?: string;
+    multiChannelContent?: Record<string, string>;
+}
+
+interface WorkbenchPanelOptions {
+    viewContainerId?: string;
+    defaultTab?: WorkbenchTab;
+    templatesPlacement?: 'workbench-right' | 'workbench-left' | 'disabled';
+    hostMode?: 'vscode-panel' | 'vscode-templates';
+    onTemplateInsertRequest?: (payload: TemplateInsertRequest) => void;
+}
+
 export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'ncedit7lab.workbenchPanelView';
     private currentWebviewView?: vscode.WebviewView;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
-        private readonly _backendPort: number
+        private readonly _backendPort: number,
+        private readonly options: WorkbenchPanelOptions = {}
     ) { }
 
     public resolveWebviewView(
@@ -32,6 +51,12 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                 switch (message.type) {
                     case 'ready':
                         this.updateConfig(this.getCurrentWebviewConfig());
+                        if (this.options.defaultTab) {
+                            await this.postMessage({ type: 'OPEN_WORKBENCH_PANEL', tab: this.options.defaultTab });
+                        }
+                        break;
+                    case 'TEMPLATE_INSERT_REQUEST':
+                        this.options.onTemplateInsertRequest?.(message.payload as TemplateInsertRequest);
                         break;
                     case 'SAVE_TRANSFER_FILE':
                         try {
@@ -166,6 +191,10 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
         return this.postMessage({ type: 'UPDATE_CONFIG', config });
     }
 
+    public setTemplatesPlacement(templatesPlacement: 'workbench-right' | 'workbench-left' | 'disabled'): void {
+        this.options.templatesPlacement = templatesPlacement;
+    }
+
     private getCurrentWebviewConfig(): Record<string, unknown> {
         const ptmConfig = vscode.workspace.getConfiguration('ncedit7lab.ptm');
         const layoutConfig = vscode.workspace.getConfiguration('ncedit7lab.layout');
@@ -179,16 +208,27 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
             transferProtocol: config.get<string>('transferProtocol') || 'none',
             transferDriverPath: config.get<string>('transferDriverPath') || '',
             themeMode: config.get<string>('theme.mode') || 'vscode',
-            hostMode: 'vscode-panel',
+            hostMode: this.options.hostMode || 'vscode-panel',
             ptmPlacement: layoutConfig.get<string>('ptmPlacement') || 'external-panel',
             showPtmTransfer: config.get<boolean>('showPtmTransfer') ?? false,
+            showTransferPanel: config.get<boolean>('showPtmTransfer') ?? false,
             showDrawPanel: config.get<boolean>('showDrawPanel') ?? true,
+            showTemplatesPanel: config.get<boolean>('showTemplatesPanel') ?? true,
+            templatesPlacement: this.options.templatesPlacement || 'workbench-right',
+            seedDefaultTemplates: true,
+            templateStorageMode: 'local',
+            templateSeedUrl: '/templates.json',
         };
     }
 
-    public async reveal(tab?: 'variables' | 'errors' | 'transfer', channel?: string): Promise<void> {
-        await vscode.commands.executeCommand('workbench.action.focusPanel');
-        await vscode.commands.executeCommand('workbench.view.extension.ncedit7labBottomPanel');
+    public async reveal(tab?: WorkbenchTab, channel?: string): Promise<void> {
+        const containerId = this.options.viewContainerId || 'ncedit7labBottomPanel';
+
+        if (!this.options.viewContainerId) {
+            await vscode.commands.executeCommand('workbench.action.focusPanel');
+        }
+
+        await vscode.commands.executeCommand(`workbench.view.extension.${containerId}`);
 
         const view = this.currentWebviewView as vscode.WebviewView & { show?: (preserveFocus?: boolean) => void };
         view.show?.(true);
@@ -221,7 +261,10 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                 const ptmPlacement = layoutConfig.get<string>('ptmPlacement') || 'external-panel';
                 const showPtmTransfer = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showPtmTransfer') ?? false;
                 const showDrawPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showDrawPanel') ?? true;
+                const showTemplatesPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showTemplatesPanel') ?? true;
+                const templatesPlacement = this.options.templatesPlacement || 'workbench-right';
                 const backendBaseUrl = vscode.workspace.getConfiguration('ncedit7lab').get<string>('backendBaseUrl')?.trim() || `http://127.0.0.1:${this._backendPort}`;
+                const templateSeedUrl = `${basePathUri.toString()}/templates.json`;
 
                 // Inject our configuration
                 const scriptInjection = `
@@ -238,10 +281,16 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                         transferProtocol: "${transferProtocol}",
                         transferDriverPath: "${transferDriverPath.replace(/\\/g, '\\\\')}",
                         themeMode: "${themeMode}",
-                        hostMode: "vscode-panel",
+                        hostMode: "${this.options.hostMode || 'vscode-panel'}",
                         ptmPlacement: "${ptmPlacement}",
                         showPtmTransfer: ${showPtmTransfer},
-                        showDrawPanel: ${showDrawPanel}
+                        showTransferPanel: ${showPtmTransfer},
+                        showDrawPanel: ${showDrawPanel},
+                        showTemplatesPanel: ${showTemplatesPanel},
+                        templatesPlacement: "${templatesPlacement}",
+                        seedDefaultTemplates: true,
+                        templateStorageMode: "local",
+                        templateSeedUrl: "${templateSeedUrl}"
                     };
                     window.applyncedit7labTransferPatch = () => {
                         const supportedPaths = Array.isArray(window.ncedit7labSupportedTransferPaths)
@@ -394,6 +443,84 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                         });
                     };
 
+                    window.ncedit7labTemplateBridge = () => {
+                        if (window.vscodeConfig?.hostMode !== 'vscode-templates' && window.vscodeConfig?.hostMode !== 'vscode-panel') {
+                            return;
+                        }
+
+                        const postTemplateInsert = payload => {
+                            if (!payload || typeof payload.channelId !== 'string' || typeof payload.content !== 'string') {
+                                return;
+                            }
+                            window.vscodeApi.postMessage({ type: 'TEMPLATE_INSERT_REQUEST', payload });
+                        };
+
+                        const patchPanel = panel => {
+                            const service = panel?.insertionService;
+                            if (!service || service.__ncedit7labTemplateBridgePatched) {
+                                return Boolean(service?.__ncedit7labTemplateBridgePatched);
+                            }
+
+                            Object.defineProperty(service, '__ncedit7labTemplateBridgePatched', {
+                                value: true,
+                                configurable: false,
+                                enumerable: false,
+                                writable: false,
+                            });
+
+                            const originalInsertTemplate = service.insertTemplate?.bind(service);
+                            if (originalInsertTemplate) {
+                                service.insertTemplate = async (templateId, channelId, mode) => {
+                                    const inserted = await originalInsertTemplate(templateId, channelId, mode);
+                                    if (inserted) {
+                                        const template = await service.catalogService?.getTemplate?.(templateId);
+                                        if (template) {
+                                            postTemplateInsert({
+                                                channelId,
+                                                content: template.content,
+                                                mode: mode ?? template.insertMode,
+                                                templateId: template.id,
+                                                multiChannelContent: template.multiChannelContent,
+                                            });
+                                        }
+                                    }
+                                    return inserted;
+                                };
+                            }
+
+                            const originalInsertMultiChannelTemplate = service.insertMultiChannelTemplate?.bind(service);
+                            if (originalInsertMultiChannelTemplate) {
+                                service.insertMultiChannelTemplate = async (templateId, mode) => {
+                                    const inserted = await originalInsertMultiChannelTemplate(templateId, mode);
+                                    if (inserted) {
+                                        const template = await service.catalogService?.getTemplate?.(templateId);
+                                        if (template?.multiChannelContent) {
+                                            Object.entries(template.multiChannelContent).forEach(([channelId, content]) => {
+                                                if ((channelId === '1' || channelId === '2' || channelId === '3') && content) {
+                                                    postTemplateInsert({
+                                                        channelId,
+                                                        content,
+                                                        mode: mode ?? template.insertMode,
+                                                        templateId: template.id,
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    }
+                                    return inserted;
+                                };
+                            }
+
+                            return true;
+                        };
+
+                        const patchPanels = () => document.querySelectorAll('nc-templates-panel').forEach(patchPanel);
+                        customElements.whenDefined('nc-templates-panel').then(() => {
+                            patchPanels();
+                            new MutationObserver(patchPanels).observe(document.body, { childList: true, subtree: true });
+                        });
+                    };
+
                     window.vscodeApi = window.vscodeApi || acquireVsCodeApi();
                     window.addEventListener('message', event => {
                         const message = event.data;
@@ -412,6 +539,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                     });
                     window.addEventListener('DOMContentLoaded', () => {
                         window.applyncedit7labTransferPatch();
+                        window.ncedit7labTemplateBridge();
                         window.vscodeApi.postMessage({ type: 'ready' });
                     });
                 </script>

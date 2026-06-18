@@ -17,7 +17,8 @@
   ],
   "activationEvents": [
     "onCustomEditor:ncedit7lab.editor",
-    "onView:ncedit7lab.workbenchPanelView"
+    "onView:ncedit7lab.workbenchPanelView",
+    "onView:ncedit7lab.templatesView"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -51,6 +52,10 @@
       {
         "command": "ncedit7lab.openWorkbenchPanel",
         "title": "ncedit7lab: Open Workbench Panel"
+      },
+      {
+        "command": "ncedit7lab.openTemplates",
+        "title": "ncedit7lab: Open Templates"
       },
       {
         "command": "ncedit7lab.find",
@@ -118,6 +123,13 @@
       }
     ],
     "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ncedit7labTemplates",
+          "title": "NC Templates",
+          "icon": "resources/templates.svg"
+        }
+      ],
       "panel": [
         {
           "id": "ncedit7labBottomPanel",
@@ -127,6 +139,14 @@
       ]
     },
     "views": {
+      "ncedit7labTemplates": [
+        {
+          "type": "webview",
+          "id": "ncedit7lab.templatesView",
+          "name": "Templates",
+          "icon": "$(symbol-snippet)"
+        }
+      ],
       "ncedit7labBottomPanel": [
         {
           "type": "webview",
@@ -148,6 +168,46 @@
           ],
           "default": "light",
           "description": "Theme mode used inside ncedit7lab webviews."
+        },
+        "ncedit7lab.showTemplatesPanel": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the NC Templates view in ncedit7lab webviews."
+        },
+        "ncedit7lab.transferProtocol": {
+          "type": "string",
+          "enum": [
+            "none",
+            "usb"
+          ],
+          "default": "usb",
+          "description": "Which protocol to use for CNC file transfer features in ncedit7lab. 'usb' uses USB protocol for file transfer. 'none' disables the transfer features."
+        },
+        "ncedit7lab.showPtmTransfer": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show the Ptm Transfer in ncedit7lab."
+        },
+        "ncedit7lab.layout.ptmPlacement": {
+          "type": "string",
+          "enum": [
+            "side-panel",
+            "bottom-panel",
+            "external-panel",
+            "disabled"
+          ],
+          "default": "external-panel",
+          "description": "Where PTM should appear inside the VS Code custom editor host."
+        },
+        "ncedit7lab.templatesPlacement": {
+          "type": "string",
+          "enum": [
+            "workbench-left",
+            "workbench-right",
+            "disabled"
+          ],
+          "default": "workbench-left",
+          "description": "Where the Templates manager is hosted in VS Code."
         }
       }
     }
