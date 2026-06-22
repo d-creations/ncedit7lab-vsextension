@@ -11,6 +11,26 @@ type TemplatesPlacement = 'workbench-left' | 'workbench-right' | 'disabled';
 
 let backendProcess: cp.ChildProcess | undefined;
 
+export function resolveBackendBaseUrl(configuredBaseUrl: string | undefined, backendPort: number): string {
+    const fallbackBaseUrl = `http://127.0.0.1:${backendPort}`;
+    const trimmedBaseUrl = configuredBaseUrl?.trim();
+    if (!trimmedBaseUrl) {
+        return fallbackBaseUrl;
+    }
+
+    try {
+        const url = new URL(trimmedBaseUrl);
+        const isLoopback = url.hostname === '127.0.0.1' || url.hostname === 'localhost';
+        if (isLoopback && url.port === '8000' && backendPort !== 8000) {
+            return fallbackBaseUrl;
+        }
+    } catch {
+        return trimmedBaseUrl;
+    }
+
+    return trimmedBaseUrl;
+}
+
 async function getFreePort(): Promise<number> {
     return new Promise((resolve, reject) => {
         const srv = net.createServer();
@@ -26,7 +46,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const backendPort = await getFreePort();
 	const getBackendBaseUrl = () => {
 		const configuredBaseUrl = vscode.workspace.getConfiguration('ncedit7lab').get<string>('backendBaseUrl')?.trim();
-		return configuredBaseUrl || `http://127.0.0.1:${backendPort}`;
+        return resolveBackendBaseUrl(configuredBaseUrl, backendPort);
 	};
 
     const getTemplatesPlacement = (): TemplatesPlacement => {
@@ -47,12 +67,13 @@ export async function activate(context: vscode.ExtensionContext) {
         const layoutConfig = vscode.workspace.getConfiguration('ncedit7lab.layout');
         const transferConfig = vscode.workspace.getConfiguration('ncedit7lab');
         const themeMode = vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode';
+        const protocol = transferConfig.get<string>('transferProtocol') || 'none';
         return {
             backendPort,
             backendBaseUrl: getBackendBaseUrl(),
             ptmDefaultIp: ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1',
-            transferDefaultIp: ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1',
-            transferProtocol: transferConfig.get<string>('transferProtocol') || 'none',
+            transferDefaultIp: protocol === 'usb' ? '' : ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1',
+            transferProtocol: protocol,
             transferDriverPath: transferConfig.get<string>('transferDriverPath') || '',
             themeMode,
             hostMode: 'vscode-editor',
@@ -61,7 +82,6 @@ export async function activate(context: vscode.ExtensionContext) {
             templatesPlacement: transferConfig.get<string>('templatesPlacement') || 'workbench-left',
             seedDefaultTemplates: true,
             templateStorageMode: 'local',
-            templateSeedUrl: '/templates.json',
         };
     };
 
@@ -69,12 +89,13 @@ export async function activate(context: vscode.ExtensionContext) {
         const ptmConfig = vscode.workspace.getConfiguration('ncedit7lab.ptm');
         const transferConfig = vscode.workspace.getConfiguration('ncedit7lab');
         const themeMode = vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode';
+        const protocol = transferConfig.get<string>('transferProtocol') || 'none';
         return {
             backendPort,
             backendBaseUrl: getBackendBaseUrl(),
             ptmDefaultIp: ptmConfig.get<string>('defaultIpAddress') || 'DEMO',
-            transferDefaultIp: ptmConfig.get<string>('defaultIpAddress') || 'DEMO',
-            transferProtocol: transferConfig.get<string>('transferProtocol') || 'none',
+            transferDefaultIp: protocol === 'usb' ? '' : ptmConfig.get<string>('defaultIpAddress') || 'DEMO',
+            transferProtocol: protocol,
             transferDriverPath: transferConfig.get<string>('transferDriverPath') || '',
             themeMode,
             hostMode: 'vscode-panel',
@@ -83,7 +104,6 @@ export async function activate(context: vscode.ExtensionContext) {
             templatesPlacement: getWorkbenchTemplatesPlacement(),
             seedDefaultTemplates: true,
             templateStorageMode: 'local',
-            templateSeedUrl: '/templates.json',
         };
     };
 
@@ -208,6 +228,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 void workbenchPanelProvider.updateConfig(getPanelWebviewConfig());
                 void templatesPanelProvider.updateConfig({
                     ...getPanelWebviewConfig(),
+                    hostMode: 'vscode-templates',
                     templatesPlacement: getTemplatesViewPlacement(),
                 });
             }

@@ -159,6 +159,16 @@
     "configuration": {
       "title": "ncedit7lab",
       "properties": {
+        "ncedit7lab.backendBaseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Optional absolute backend base URL override. Leave empty to use the embedded local backend."
+        },
+        "ncedit7lab.ptm.defaultIpAddress": {
+          "type": "string",
+          "default": "DEMO",
+          "description": "Default IP address to use for the PTM CNC connection."
+        },
         "ncedit7lab.theme.mode": {
           "type": "string",
           "enum": [
@@ -187,6 +197,16 @@
           "type": "boolean",
           "default": false,
           "description": "Show the Ptm Transfer in ncedit7lab."
+        },
+        "ncedit7lab.showDrawPanel": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the Draw panel in ncedit7lab."
+        },
+        "ncedit7lab.transferDriverPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the transfer driver."
         },
         "ncedit7lab.layout.ptmPlacement": {
           "type": "string",

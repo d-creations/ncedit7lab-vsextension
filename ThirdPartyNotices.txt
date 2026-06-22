@@ -858,9 +858,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 fastapi
-0.137.1
+0.138.0
 MIT
-<extension-root>\python_embedded\Lib\site-packages\fastapi-0.137.1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\fastapi-0.138.0.dist-info\licenses\LICENSE
 The MIT License (MIT)
 
 Copyright (c) 2018 Sebastián Ramírez

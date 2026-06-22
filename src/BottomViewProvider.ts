@@ -2,7 +2,13 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
+import { resolveBackendBaseUrl } from './extension';
+
 type WorkbenchTab = 'variables' | 'errors' | 'transfer' | 'templates';
+
+function scriptValue(value: unknown): string {
+    return JSON.stringify(value);
+}
 
 export interface TemplateInsertRequest {
     channelId: string;
@@ -245,11 +251,11 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
         try {
             if (fs.existsSync(indexHtmlPath.fsPath)) {
                 let rawHtml = fs.readFileSync(indexHtmlPath.fsPath, 'utf8');
-                const basePathUri = webview.asWebviewUri(distPath);
+                const asDistResourceUri = (filePath: string) => webview.asWebviewUri(vscode.Uri.joinPath(distPath, ...filePath.split('/'))).toString();
                 
                 // Replace Vite asset references
                 htmlContent = rawHtml.replace(/(href|src)="\/([^"]*)"/g, (match, attr, filePath) => {
-                    return `${attr}="${basePathUri.toString()}/${filePath}"`;
+                    return `${attr}="${asDistResourceUri(filePath)}"`;
                 });
 
                 const ptmConfig = vscode.workspace.getConfiguration('ncedit7lab.ptm');
@@ -258,39 +264,40 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                 const transferDriverPath = vscode.workspace.getConfiguration('ncedit7lab').get<string>('transferDriverPath') || '';
                 const themeMode = vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode';
                 const defaultIp = ptmConfig.get<string>('defaultIpAddress') || 'DEMO';
+                const transferDefaultIp = transferProtocol === 'usb' ? '' : defaultIp;
                 const ptmPlacement = layoutConfig.get<string>('ptmPlacement') || 'external-panel';
                 const showPtmTransfer = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showPtmTransfer') ?? false;
                 const showDrawPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showDrawPanel') ?? true;
                 const showTemplatesPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showTemplatesPanel') ?? true;
                 const templatesPlacement = this.options.templatesPlacement || 'workbench-right';
-                const backendBaseUrl = vscode.workspace.getConfiguration('ncedit7lab').get<string>('backendBaseUrl')?.trim() || `http://127.0.0.1:${this._backendPort}`;
-                const templateSeedUrl = `${basePathUri.toString()}/templates.json`;
+                const backendBaseUrl = resolveBackendBaseUrl(vscode.workspace.getConfiguration('ncedit7lab').get<string>('backendBaseUrl'), this._backendPort);
+                const templateSeedUrl = asDistResourceUri('templates.json');
 
                 // Inject our configuration
                 const scriptInjection = `
                 <script>
                     window.backendPort = ${this._backendPort};
-                    window.backendBaseUrl = "${backendBaseUrl}";
-                    window.ptmDefaultIp = "${defaultIp}";
+                    window.backendBaseUrl = ${scriptValue(backendBaseUrl)};
+                    window.ptmDefaultIp = ${scriptValue(defaultIp)};
                     window.ncedit7labSupportedTransferPaths = [1, 2,3];
                     window.vscodeConfig = {
                         backendPort: ${this._backendPort},
-                        backendBaseUrl: "${backendBaseUrl}",
-                        ptmDefaultIp: "${defaultIp}",
-                        transferDefaultIp: "${defaultIp}",
-                        transferProtocol: "${transferProtocol}",
-                        transferDriverPath: "${transferDriverPath.replace(/\\/g, '\\\\')}",
-                        themeMode: "${themeMode}",
-                        hostMode: "${this.options.hostMode || 'vscode-panel'}",
-                        ptmPlacement: "${ptmPlacement}",
+                        backendBaseUrl: ${scriptValue(backendBaseUrl)},
+                        ptmDefaultIp: ${scriptValue(defaultIp)},
+                        transferDefaultIp: ${scriptValue(transferDefaultIp)},
+                        transferProtocol: ${scriptValue(transferProtocol)},
+                        transferDriverPath: ${scriptValue(transferDriverPath)},
+                        themeMode: ${scriptValue(themeMode)},
+                        hostMode: ${scriptValue(this.options.hostMode || 'vscode-panel')},
+                        ptmPlacement: ${scriptValue(ptmPlacement)},
                         showPtmTransfer: ${showPtmTransfer},
                         showTransferPanel: ${showPtmTransfer},
                         showDrawPanel: ${showDrawPanel},
                         showTemplatesPanel: ${showTemplatesPanel},
-                        templatesPlacement: "${templatesPlacement}",
+                        templatesPlacement: ${scriptValue(templatesPlacement)},
                         seedDefaultTemplates: true,
                         templateStorageMode: "local",
-                        templateSeedUrl: "${templateSeedUrl}"
+                        templateSeedUrl: ${scriptValue(templateSeedUrl)}
                     };
                     window.applyncedit7labTransferPatch = () => {
                         const supportedPaths = Array.isArray(window.ncedit7labSupportedTransferPaths)
@@ -524,6 +531,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                     window.vscodeApi = window.vscodeApi || acquireVsCodeApi();
                     window.addEventListener('message', event => {
                         const message = event.data;
+                        if (message.type === 'SELECT_USB_DIRECTORY0')
                         if (message.type === 'FILES_OPENED' || message.type === 'FILE_UPDATED_EXTERNALLY') {
                             window.dispatchEvent(new CustomEvent('vscode:files-opened', { detail: message }));
                         }
@@ -551,7 +559,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                     nc-workbench-panel-app { flex: 1; min-height: 0; height: 100%; width: 100%; }
                 </style>
                 `;
-                htmlContent = htmlContent.replace('<head>', '<head>' + scriptInjection);
+                htmlContent = htmlContent.replace('<head>', `<head>\n${scriptInjection}`);
             }
         } catch (e) {
             return `<!DOCTYPE html><html><body>Error loading UI: ${e}</body></html>`;

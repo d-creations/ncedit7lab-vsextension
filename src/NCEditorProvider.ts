@@ -2,7 +2,13 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
+import { resolveBackendBaseUrl } from './extension';
+
 type WorkbenchTab = 'variables' | 'errors' | 'transfer' | 'templates';
+
+function scriptValue(value: unknown): string {
+    return JSON.stringify(value);
+}
 
 type EditorRelayMessage =
     | { type: 'FILES_OPENED'; isSingleFile: boolean; activeChannel: string; channels: Record<string, string> }
@@ -495,13 +501,16 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
         const ptmConfig = vscode.workspace.getConfiguration('ncedit7lab.ptm');
         const layoutConfig = vscode.workspace.getConfiguration('ncedit7lab.layout');
         const config = vscode.workspace.getConfiguration('ncedit7lab');
+        const transferProtocol = config.get<string>('transferProtocol') || 'none';
+        const defaultIp = ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1';
+        const transferDefaultIp = transferProtocol === 'usb' ? '' : defaultIp;
 
         return {
             backendPort: this.backendPort,
-            backendBaseUrl: config.get<string>('backendBaseUrl')?.trim() || `http://127.0.0.1:${this.backendPort}`,
-            ptmDefaultIp: ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1',
-            transferDefaultIp: ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1',
-            transferProtocol: config.get<string>('transferProtocol') || 'none',
+            backendBaseUrl: resolveBackendBaseUrl(config.get<string>('backendBaseUrl'), this.backendPort),
+            ptmDefaultIp: defaultIp,
+            transferDefaultIp,
+            transferProtocol,
             transferDriverPath: config.get<string>('transferDriverPath') || '',
             themeMode: config.get<string>('theme.mode') || 'vscode',
             hostMode: 'vscode-editor',
@@ -528,15 +537,16 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
         try {
             if (fs.existsSync(indexHtmlPath)) {
                 let rawHtml = fs.readFileSync(indexHtmlPath, 'utf8');
-                const basePathUri = webview.asWebviewUri(distPath);
+                const asDistResourceUri = (filePath: string) => webview.asWebviewUri(vscode.Uri.joinPath(distPath, ...filePath.split('/'))).toString();
                 htmlContent = rawHtml.replace(/(href|src)="\/([^"]*)"/g, (match, attr, filePath) => {
-                    return `${attr}="${basePathUri.toString()}/${filePath}"`;
+                    return `${attr}="${asDistResourceUri(filePath)}"`;
                 });
 
                 const ptmConfig = vscode.workspace.getConfiguration('ncedit7lab.ptm');
                 const layoutConfig = vscode.workspace.getConfiguration('ncedit7lab.layout');
                 const defaultIp = ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1';
                 const transferProtocol = vscode.workspace.getConfiguration('ncedit7lab').get<string>('transferProtocol') || 'none';
+                const transferDefaultIp = transferProtocol === 'usb' ? '' : defaultIp;
                 const transferDriverPath = vscode.workspace.getConfiguration('ncedit7lab').get<string>('transferDriverPath') || '';
                 const themeMode = vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode';
                 const ptmPlacement = layoutConfig.get<string>('ptmPlacement') || 'external-panel';
@@ -544,33 +554,34 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                 const showDrawPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showDrawPanel') ?? true;
                 const showTemplatesPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showTemplatesPanel') ?? true;
                 const templatesPlacement = vscode.workspace.getConfiguration('ncedit7lab').get<string>('templatesPlacement') || 'workbench-left';
-                const backendBaseUrl = vscode.workspace.getConfiguration('ncedit7lab').get<string>('backendBaseUrl')?.trim() || `http://127.0.0.1:${this.backendPort}`;
-                const templateSeedUrl = `${basePathUri.toString()}/templates.json`;
+                const backendBaseUrl = resolveBackendBaseUrl(vscode.workspace.getConfiguration('ncedit7lab').get<string>('backendBaseUrl'), this.backendPort);
+                const templateSeedUrl = asDistResourceUri('templates.json');
 
                 const scriptInjection = `
                 <script>
                     window.backendPort = ${this.backendPort};
-                    window.backendBaseUrl = "${backendBaseUrl}";
-                    window.ptmDefaultIp = "${defaultIp}";
+                    window.backendBaseUrl = ${scriptValue(backendBaseUrl)};
+                    window.ptmDefaultIp = ${scriptValue(defaultIp)};
+                    window.ncedit7labHostMode = "vscode-editor";
                     window.ncedit7labSupportedTransferPaths = [1, 2, 3];
                     window.vscodeConfig = {
                         backendPort: ${this.backendPort},
-                        backendBaseUrl: "${backendBaseUrl}",
-                        ptmDefaultIp: "${defaultIp}",
-                        transferDefaultIp: "${defaultIp}",
-                        transferProtocol: "${transferProtocol}",
-                        transferDriverPath: "${transferDriverPath.replace(/\\/g, '\\\\')}",
-                        themeMode: "${themeMode}",
+                        backendBaseUrl: ${scriptValue(backendBaseUrl)},
+                        ptmDefaultIp: ${scriptValue(defaultIp)},
+                        transferDefaultIp: ${scriptValue(transferDefaultIp)},
+                        transferProtocol: ${scriptValue(transferProtocol)},
+                        transferDriverPath: ${scriptValue(transferDriverPath)},
+                        themeMode: ${scriptValue(themeMode)},
                         hostMode: "vscode-editor",
-                        ptmPlacement: "${ptmPlacement}",
+                        ptmPlacement: ${scriptValue(ptmPlacement)},
                         showPtmTransfer: ${showPtmTransfer},
                         showTransferPanel: ${showPtmTransfer},
                         showDrawPanel: ${showDrawPanel},
                         showTemplatesPanel: ${showTemplatesPanel},
-                        templatesPlacement: "${templatesPlacement}",
+                        templatesPlacement: ${scriptValue(templatesPlacement)},
                         seedDefaultTemplates: true,
                         templateStorageMode: "local",
-                        templateSeedUrl: "${templateSeedUrl}"
+                        templateSeedUrl: ${scriptValue(templateSeedUrl)}
                     };
                     window.applyncedit7labTransferPatch = () => {
                         const supportedPaths = Array.isArray(window.ncedit7labSupportedTransferPaths)
@@ -761,7 +772,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                     });
                 </script>
                 `;
-                htmlContent = htmlContent.replace('</head>', `${scriptInjection}</head>`);
+                htmlContent = htmlContent.replace('<head>', `<head>\n${scriptInjection}`);
             }
         } catch (error) {
             console.error('Failed to load Vite index.html', error);
