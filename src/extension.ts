@@ -68,11 +68,12 @@ export async function activate(context: vscode.ExtensionContext) {
         const transferConfig = vscode.workspace.getConfiguration('ncedit7lab');
         const themeMode = vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode';
         const protocol = transferConfig.get<string>('transferProtocol') || 'none';
+        const usbDefaultRootPath = vscode.workspace.getConfiguration('ncedit7lab.usb').get<string>('defaultRootPath')?.trim() || '';
         return {
             backendPort,
             backendBaseUrl: getBackendBaseUrl(),
             ptmDefaultIp: ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1',
-            transferDefaultIp: protocol === 'usb' ? '' : ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1',
+            transferDefaultIp: protocol === 'usb' ? usbDefaultRootPath : ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1',
             transferProtocol: protocol,
             transferDriverPath: transferConfig.get<string>('transferDriverPath') || '',
             themeMode,
@@ -90,11 +91,12 @@ export async function activate(context: vscode.ExtensionContext) {
         const transferConfig = vscode.workspace.getConfiguration('ncedit7lab');
         const themeMode = vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode';
         const protocol = transferConfig.get<string>('transferProtocol') || 'none';
+        const usbDefaultRootPath = vscode.workspace.getConfiguration('ncedit7lab.usb').get<string>('defaultRootPath')?.trim() || '';
         return {
             backendPort,
             backendBaseUrl: getBackendBaseUrl(),
             ptmDefaultIp: ptmConfig.get<string>('defaultIpAddress') || 'DEMO',
-            transferDefaultIp: protocol === 'usb' ? '' : ptmConfig.get<string>('defaultIpAddress') || 'DEMO',
+            transferDefaultIp: protocol === 'usb' ? usbDefaultRootPath : ptmConfig.get<string>('defaultIpAddress') || 'DEMO',
             transferProtocol: protocol,
             transferDriverPath: transferConfig.get<string>('transferDriverPath') || '',
             themeMode,
@@ -131,6 +133,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const workbenchPanelProvider = new WorkbenchPanelWebviewViewProvider(context.extensionUri, backendPort, {
         templatesPlacement: getWorkbenchTemplatesPlacement(),
         onTemplateInsertRequest: handleTemplateInsertRequest,
+        onActiveProgramUploadRequest: (pathId: string) => editorProvider.getActiveProgramUploadRequest(pathId),
     });
     const templatesPanelProvider = new WorkbenchPanelWebviewViewProvider(context.extensionUri, backendPort, {
         viewContainerId: 'ncedit7labTemplates',

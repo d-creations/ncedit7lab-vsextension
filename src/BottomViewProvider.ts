@@ -10,6 +10,32 @@ function scriptValue(value: unknown): string {
     return JSON.stringify(value);
 }
 
+async function selectUsbDirectory(webview: vscode.Webview): Promise<void> {
+    const usbConfig = vscode.workspace.getConfiguration('ncedit7lab.usb');
+    const defaultRootPath = usbConfig.get<string>('defaultRootPath')?.trim() || '';
+    const defaultUri = defaultRootPath && fs.existsSync(defaultRootPath) ? vscode.Uri.file(defaultRootPath) : undefined;
+    const selectedFolders = await vscode.window.showOpenDialog({
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        defaultUri,
+        openLabel: 'Select USB Folder',
+        title: 'Select USB Transfer Folder',
+    });
+
+    const selectedFolder = selectedFolders?.[0];
+    if (!selectedFolder) {
+        return;
+    }
+
+    const selectedPath = selectedFolder.fsPath;
+    const configurationTarget = vscode.workspace.workspaceFolders
+        ? vscode.ConfigurationTarget.Workspace
+        : vscode.ConfigurationTarget.Global;
+    await usbConfig.update('defaultRootPath', selectedPath, configurationTarget);
+    await webview.postMessage({ type: 'USB_DIRECTORY_SELECTED', path: selectedPath });
+}
+
 export interface TemplateInsertRequest {
     channelId: string;
     content: string;
@@ -24,6 +50,7 @@ interface WorkbenchPanelOptions {
     templatesPlacement?: 'workbench-right' | 'workbench-left' | 'disabled';
     hostMode?: 'vscode-panel' | 'vscode-templates';
     onTemplateInsertRequest?: (payload: TemplateInsertRequest) => void;
+    onActiveProgramUploadRequest?: (pathId: string) => { pathId: string; content: string } | undefined;
 }
 
 export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProvider {
@@ -64,6 +91,23 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                     case 'TEMPLATE_INSERT_REQUEST':
                         this.options.onTemplateInsertRequest?.(message.payload as TemplateInsertRequest);
                         break;
+                    case 'SELECT_USB_DIRECTORY':
+                        await selectUsbDirectory(webviewView.webview);
+                        break;
+                    case 'REQUEST_ACTIVE_PROGRAM_FOR_UPLOAD': {
+                        const uploadRequest = this.options.onActiveProgramUploadRequest?.(String(message.pathId || ''));
+                        if (!uploadRequest) {
+                            vscode.window.showWarningMessage('Open an NC editor before pushing the active program.');
+                            return;
+                        }
+
+                        webviewView.webview.postMessage({
+                            type: 'DO_TRANSFER_UPLOAD',
+                            pathId: uploadRequest.pathId,
+                            content: uploadRequest.content,
+                        });
+                        break;
+                    }
                     case 'SAVE_TRANSFER_FILE':
                         try {
                             if (!vscode.workspace.workspaceFolders) {
@@ -174,7 +218,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                             // Read the file and send back to WebView to perform the upload
                             const fileContent = fs.readFileSync(targetFsPath, 'utf8');
                             webviewView.webview.postMessage({
-                                type: 'DO_FOCfAS_UPLOAD',
+                                type: 'DO_TRANSFER_UPLOAD',
                                 pathId: message.pathId,
                                 content: fileContent
                             });
@@ -205,13 +249,16 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
         const ptmConfig = vscode.workspace.getConfiguration('ncedit7lab.ptm');
         const layoutConfig = vscode.workspace.getConfiguration('ncedit7lab.layout');
         const config = vscode.workspace.getConfiguration('ncedit7lab');
+        const usbDefaultRootPath = vscode.workspace.getConfiguration('ncedit7lab.usb').get<string>('defaultRootPath')?.trim() || '';
+        const transferProtocol = config.get<string>('transferProtocol') || 'none';
+        const defaultIp = ptmConfig.get<string>('defaultIpAddress') || 'DEMO';
 
         return {
             backendPort: this._backendPort,
             backendBaseUrl: config.get<string>('backendBaseUrl')?.trim() || `http://127.0.0.1:${this._backendPort}`,
-            ptmDefaultIp: ptmConfig.get<string>('defaultIpAddress') || 'DEMO',
-            transferDefaultIp: ptmConfig.get<string>('defaultIpAddress') || 'DEMO',
-            transferProtocol: config.get<string>('transferProtocol') || 'none',
+            ptmDefaultIp: defaultIp,
+            transferDefaultIp: transferProtocol === 'usb' ? usbDefaultRootPath : defaultIp,
+            transferProtocol,
             transferDriverPath: config.get<string>('transferDriverPath') || '',
             themeMode: config.get<string>('theme.mode') || 'vscode',
             hostMode: this.options.hostMode || 'vscode-panel',
@@ -262,9 +309,10 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                 const layoutConfig = vscode.workspace.getConfiguration('ncedit7lab.layout');
                 const transferProtocol = vscode.workspace.getConfiguration('ncedit7lab').get<string>('transferProtocol') || 'none';
                 const transferDriverPath = vscode.workspace.getConfiguration('ncedit7lab').get<string>('transferDriverPath') || '';
+                const usbDefaultRootPath = vscode.workspace.getConfiguration('ncedit7lab.usb').get<string>('defaultRootPath')?.trim() || '';
                 const themeMode = vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode';
                 const defaultIp = ptmConfig.get<string>('defaultIpAddress') || 'DEMO';
-                const transferDefaultIp = transferProtocol === 'usb' ? '' : defaultIp;
+                const transferDefaultIp = transferProtocol === 'usb' ? usbDefaultRootPath : defaultIp;
                 const ptmPlacement = layoutConfig.get<string>('ptmPlacement') || 'external-panel';
                 const showPtmTransfer = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showPtmTransfer') ?? false;
                 const showDrawPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showDrawPanel') ?? true;
@@ -351,17 +399,6 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                                 }
                             };
 
-                            const originalRender = proto.render;
-                            proto.render = function(...args) {
-                                const result = originalRender.apply(this, args);
-
-                                if (this.shadowRoot) {
-                                    this.shadowRoot.querySelectorAll('[data-path="3"]').forEach((element) => element.remove());
-                                }
-
-                                return result;
-                            };
-
                             proto.uploadDroppedFile = async function(content, targetPath) {
                                 if (!targetPath) {
                                     return;
@@ -373,39 +410,47 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
 
                                     if (targetPath === 'PA') {
                                         const taggedPrograms = {};
-                                        const tagRegex = /<[^>]*P(\d+)>/g;
+                                        const tagRegex = /<\s*(O\d+)\.P(\d+)\s*>/gi;
                                         let match;
                                         let contentStart = 0;
                                         let currentPath = -1;
+                                        let currentProgram = '';
 
                                         while ((match = tagRegex.exec(content)) !== null) {
                                             if (currentPath !== -1) {
-                                                taggedPrograms[currentPath] = content.substring(contentStart, match.index).trim();
+                                                taggedPrograms[currentPath] = {
+                                                    program: currentProgram,
+                                                    content: content.substring(contentStart, match.index).trim(),
+                                                };
                                             }
-                                            currentPath = parseInt(match[1], 10);
+                                            currentProgram = match[1].toUpperCase();
+                                            currentPath = parseInt(match[2], 10);
                                             contentStart = tagRegex.lastIndex;
                                         }
 
                                         if (currentPath !== -1) {
-                                            taggedPrograms[currentPath] = content.substring(contentStart).trim();
+                                            taggedPrograms[currentPath] = {
+                                                program: currentProgram,
+                                                content: content.substring(contentStart).trim(),
+                                            };
                                         }
 
                                         const uploadedPaths = [];
                                         const skippedPaths = [];
                                         const errors = [];
 
-                                        for (const [pathKey, partContent] of Object.entries(taggedPrograms)) {
+                                        for (const [pathKey, part] of Object.entries(taggedPrograms)) {
                                             const pathNumber = parseInt(pathKey, 10);
                                             if (!supportedPaths.includes(pathNumber)) {
                                                 skippedPaths.push(pathNumber);
                                                 continue;
                                             }
 
-                                            let cleanContent = partContent.trim();
+                                            let cleanContent = part.content.trim();
                                             if (cleanContent.startsWith('%')) cleanContent = cleanContent.slice(1).trimStart();
                                             if (cleanContent.endsWith('%')) cleanContent = cleanContent.slice(0, -1).trimEnd();
 
-                                            const finalContent = '\\n' + cleanContent + '\\n%';
+                                            const finalContent = '\\n' + part.program + '\\n' + cleanContent + '\\n%';
                                             try {
                                                 await this.transferClient.downloadProgram(this.ipAddress, pathNumber, finalContent);
                                                 uploadedPaths.push(pathNumber);
@@ -531,7 +576,6 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                     window.vscodeApi = window.vscodeApi || acquireVsCodeApi();
                     window.addEventListener('message', event => {
                         const message = event.data;
-                        if (message.type === 'SELECT_USB_DIRECTORY0')
                         if (message.type === 'FILES_OPENED' || message.type === 'FILE_UPDATED_EXTERNALLY') {
                             window.dispatchEvent(new CustomEvent('vscode:files-opened', { detail: message }));
                         }

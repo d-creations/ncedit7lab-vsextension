@@ -169,6 +169,11 @@
           "default": "DEMO",
           "description": "Default IP address to use for the PTM CNC connection."
         },
+        "ncedit7lab.usb.defaultRootPath": {
+          "type": "string",
+          "default": "",
+          "description": "Default folder path to use for USB transfer. Leave empty to choose a folder from the transfer panel."
+        },
         "ncedit7lab.theme.mode": {
           "type": "string",
           "enum": [

@@ -10,6 +10,32 @@ function scriptValue(value: unknown): string {
     return JSON.stringify(value);
 }
 
+async function selectUsbDirectory(webview: vscode.Webview): Promise<void> {
+    const usbConfig = vscode.workspace.getConfiguration('ncedit7lab.usb');
+    const defaultRootPath = usbConfig.get<string>('defaultRootPath')?.trim() || '';
+    const defaultUri = defaultRootPath && fs.existsSync(defaultRootPath) ? vscode.Uri.file(defaultRootPath) : undefined;
+    const selectedFolders = await vscode.window.showOpenDialog({
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        defaultUri,
+        openLabel: 'Select USB Folder',
+        title: 'Select USB Transfer Folder',
+    });
+
+    const selectedFolder = selectedFolders?.[0];
+    if (!selectedFolder) {
+        return;
+    }
+
+    const selectedPath = selectedFolder.fsPath;
+    const configurationTarget = vscode.workspace.workspaceFolders
+        ? vscode.ConfigurationTarget.Workspace
+        : vscode.ConfigurationTarget.Global;
+    await usbConfig.update('defaultRootPath', selectedPath, configurationTarget);
+    await webview.postMessage({ type: 'USB_DIRECTORY_SELECTED', path: selectedPath });
+}
+
 type EditorRelayMessage =
     | { type: 'FILES_OPENED'; isSingleFile: boolean; activeChannel: string; channels: Record<string, string> }
     | { type: 'FILE_UPDATED_EXTERNALLY'; channels: Record<string, string> }
@@ -73,6 +99,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
     }
 
     private readonly webviewPanels = new Set<vscode.WebviewPanel>();
+    private readonly panelDocuments = new Map<vscode.WebviewPanel, NCDocument>();
     private activeWebviewPanel?: vscode.WebviewPanel;
     private untitledTemplateCounter = 1;
     private readonly pendingUntitledTemplates = new Map<string, { channels: Map<string, string>; activeChannel: string; programName: string }>();
@@ -337,6 +364,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
         _token: vscode.CancellationToken
     ): Promise<void> {
         this.webviewPanels.add(webviewPanel);
+        this.panelDocuments.set(webviewPanel, document);
         this.activeWebviewPanel = webviewPanel;
 
         const distPath = vscode.Uri.joinPath(this.context.extensionUri, 'node_modules', 'ncedit7lab', 'dist');
@@ -358,6 +386,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
 
         webviewPanel.onDidDispose(() => {
             this.webviewPanels.delete(webviewPanel);
+            this.panelDocuments.delete(webviewPanel);
             if (this.activeWebviewPanel === webviewPanel) {
                 this.activeWebviewPanel = Array.from(this.webviewPanels.values())[0];
             }
@@ -430,6 +459,23 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                         channel: typeof e.channel === 'string' ? e.channel : document.activeChannel,
                     });
                     return;
+                case 'SELECT_USB_DIRECTORY':
+                    await selectUsbDirectory(webviewPanel.webview);
+                    return;
+                case 'REQUEST_ACTIVE_PROGRAM_FOR_UPLOAD': {
+                    const uploadRequest = this.getActiveProgramUploadRequest(String(e.pathId || ''));
+                    if (!uploadRequest) {
+                        vscode.window.showWarningMessage('No active NC program content is available to push.');
+                        return;
+                    }
+
+                    webviewPanel.webview.postMessage({
+                        type: 'DO_TRANSFER_UPLOAD',
+                        pathId: uploadRequest.pathId,
+                        content: uploadRequest.content,
+                    });
+                    return;
+                }
             }
         });
     }
@@ -446,6 +492,28 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
 
         void activePanel.webview.postMessage({ type: 'TEMPLATE_INSERT_REQUEST', payload });
         return true;
+    }
+
+    public getActiveProgramUploadRequest(pathId: string): { pathId: string; content: string } | undefined {
+        const activePanel = this.activeWebviewPanel;
+        const document = activePanel ? this.panelDocuments.get(activePanel) : undefined;
+        if (!document) {
+            return undefined;
+        }
+
+        if (pathId === 'PA') {
+            return {
+                pathId,
+                content: this.assemblePAFile(document.paHeaderContent, document.channelsContent, document.paProgramName),
+            };
+        }
+
+        if (!this.isChannelId(pathId)) {
+            return undefined;
+        }
+
+        const content = document.channelsContent.get(pathId);
+        return content ? { pathId, content } : undefined;
     }
 
     public async openTemplateAsUntitledProgram(payload: TemplateInsertRequest): Promise<void> {
@@ -503,7 +571,8 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
         const config = vscode.workspace.getConfiguration('ncedit7lab');
         const transferProtocol = config.get<string>('transferProtocol') || 'none';
         const defaultIp = ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1';
-        const transferDefaultIp = transferProtocol === 'usb' ? '' : defaultIp;
+        const usbDefaultRootPath = vscode.workspace.getConfiguration('ncedit7lab.usb').get<string>('defaultRootPath')?.trim() || '';
+        const transferDefaultIp = transferProtocol === 'usb' ? usbDefaultRootPath : defaultIp;
 
         return {
             backendPort: this.backendPort,
@@ -546,7 +615,8 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                 const layoutConfig = vscode.workspace.getConfiguration('ncedit7lab.layout');
                 const defaultIp = ptmConfig.get<string>('defaultIpAddress') || '192.168.1.1';
                 const transferProtocol = vscode.workspace.getConfiguration('ncedit7lab').get<string>('transferProtocol') || 'none';
-                const transferDefaultIp = transferProtocol === 'usb' ? '' : defaultIp;
+                const usbDefaultRootPath = vscode.workspace.getConfiguration('ncedit7lab.usb').get<string>('defaultRootPath')?.trim() || '';
+                const transferDefaultIp = transferProtocol === 'usb' ? usbDefaultRootPath : defaultIp;
                 const transferDriverPath = vscode.workspace.getConfiguration('ncedit7lab').get<string>('transferDriverPath') || '';
                 const themeMode = vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode';
                 const ptmPlacement = layoutConfig.get<string>('ptmPlacement') || 'external-panel';
@@ -635,17 +705,6 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                                 }
                             };
 
-                            const originalRender = proto.render;
-                            proto.render = function(...args) {
-                                const result = originalRender.apply(this, args);
-
-                                if (this.shadowRoot) {
-                                    this.shadowRoot.querySelectorAll('[data-path="3"]').forEach((element) => element.remove());
-                                }
-
-                                return result;
-                            };
-
                             proto.uploadDroppedFile = async function(content, targetPath) {
                                 if (!targetPath) {
                                     return;
@@ -657,39 +716,47 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
 
                                     if (targetPath === 'PA') {
                                         const taggedPrograms = {};
-                                        const tagRegex = /<[^>]*P(\d+)>/g;
+                                        const tagRegex = /<\s*(O\d+)\.P(\d+)\s*>/gi;
                                         let match;
                                         let contentStart = 0;
                                         let currentPath = -1;
+                                        let currentProgram = '';
 
                                         while ((match = tagRegex.exec(content)) !== null) {
                                             if (currentPath !== -1) {
-                                                taggedPrograms[currentPath] = content.substring(contentStart, match.index).trim();
+                                                taggedPrograms[currentPath] = {
+                                                    program: currentProgram,
+                                                    content: content.substring(contentStart, match.index).trim(),
+                                                };
                                             }
-                                            currentPath = parseInt(match[1], 10);
+                                            currentProgram = match[1].toUpperCase();
+                                            currentPath = parseInt(match[2], 10);
                                             contentStart = tagRegex.lastIndex;
                                         }
 
                                         if (currentPath !== -1) {
-                                            taggedPrograms[currentPath] = content.substring(contentStart).trim();
+                                            taggedPrograms[currentPath] = {
+                                                program: currentProgram,
+                                                content: content.substring(contentStart).trim(),
+                                            };
                                         }
 
                                         const uploadedPaths = [];
                                         const skippedPaths = [];
                                         const errors = [];
 
-                                        for (const [pathKey, partContent] of Object.entries(taggedPrograms)) {
+                                        for (const [pathKey, part] of Object.entries(taggedPrograms)) {
                                             const pathNumber = parseInt(pathKey, 10);
                                             if (!supportedPaths.includes(pathNumber)) {
                                                 skippedPaths.push(pathNumber);
                                                 continue;
                                             }
 
-                                            let cleanContent = partContent.trim();
+                                            let cleanContent = part.content.trim();
                                             if (cleanContent.startsWith('%')) cleanContent = cleanContent.slice(1).trimStart();
                                             if (cleanContent.endsWith('%')) cleanContent = cleanContent.slice(0, -1).trimEnd();
 
-                                            const finalContent = '\\n' + cleanContent + '\\n%';
+                                            const finalContent = '\\n' + part.program + '\\n' + cleanContent + '\\n%';
                                             try {
                                                 await this.transferClient.downloadProgram(this.ipAddress, pathNumber, finalContent);
                                                 uploadedPaths.push(pathNumber);
