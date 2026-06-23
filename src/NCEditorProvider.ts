@@ -633,7 +633,6 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                     window.backendBaseUrl = ${scriptValue(backendBaseUrl)};
                     window.ptmDefaultIp = ${scriptValue(defaultIp)};
                     window.ncedit7labHostMode = "vscode-editor";
-                    window.ncedit7labSupportedTransferPaths = [1, 2, 3];
                     window.vscodeConfig = {
                         backendPort: ${this.backendPort},
                         backendBaseUrl: ${scriptValue(backendBaseUrl)},
@@ -653,61 +652,6 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                         templateStorageMode: "local",
                         templateSeedUrl: ${scriptValue(templateSeedUrl)}
                     };
-                    window.applyncedit7labTransferPatch = () => {
-                        const supportedPaths = Array.isArray(window.ncedit7labSupportedTransferPaths)
-                            ? window.ncedit7labSupportedTransferPaths
-                            : [1, 2];
-
-                        customElements.whenDefined('nc-transfer-panel').then(() => {
-                            const TransferPanel = customElements.get('nc-transfer-panel');
-                            if (!TransferPanel) {
-                                return;
-                            }
-
-                            const proto = TransferPanel.prototype;
-                            if (proto.__ncedit7labSupportedPathsPatched) {
-                                return;
-                            }
-
-                            Object.defineProperty(proto, '__ncedit7labSupportedPathsPatched', {
-                                value: true,
-                                configurable: false,
-                                enumerable: false,
-                                writable: false,
-                            });
-
-                            proto.fetchPrograms = async function() {
-                                this.cncPrograms.clear();
-
-                                for (const path of supportedPaths) {
-                                    try {
-                                        const response = await this.transferClient.listPrograms(this.ipAddress, path);
-                                        for (const prog of response) {
-                                            if (!this.cncPrograms.has(prog.number)) {
-                                                this.cncPrograms.set(prog.number, {
-                                                    number: prog.number,
-                                                    comment: prog.comment,
-                                                    paths: {},
-                                                    isPA: false,
-                                                });
-                                            }
-
-                                            const programEntry = this.cncPrograms.get(prog.number);
-                                            programEntry.paths[path] = prog;
-                                            programEntry.isPA = !!(programEntry.paths[1] && programEntry.paths[2]);
-                                            if (!programEntry.comment && prog.comment) {
-                                                programEntry.comment = prog.comment;
-                                            }
-                                        }
-                                    } catch (error) {
-                                        console.warn('Failed to list programs on path', path, error);
-                                    }
-                                }
-                            };
-
-                        });
-                    };
-
                     window.vscodeApi = window.vscodeApi || acquireVsCodeApi();
                     window.ncedit7labApplyTemplateInsert = (payload, attempt = 0) => {
                         if (!payload || typeof payload.channelId !== 'string') {
@@ -738,7 +682,6 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                         }
                     });
                     window.addEventListener('DOMContentLoaded', () => {
-                        window.applyncedit7labTransferPatch();
                         window.vscodeApi.postMessage({ type: 'ready' });
                     });
                     window.addEventListener('vscode:file-changed', event => {
