@@ -3,7 +3,7 @@
   "publisher": "d-creations",
   "displayName": "NCEdit7-lab",
   "description": "Custom Editor for CNC files like NC/MPF PA P1 P2 P3 M S and more, with integrated  workbench panel for CNC data visualization.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -12,8 +12,22 @@
   "engines": {
     "vscode": "^1.74.0"
   },
+  "keywords": [
+    "cnc",
+    "nc",
+    "mpf",
+    "fanuc",
+    "sinumerik",
+    "gcode",
+    "g-code",
+    "editor",
+    "machining",
+    "manufacturing",
+    "siemens"
+  ],
   "categories": [
-    "Other"
+    "Other",
+    "Programming Languages"
   ],
   "activationEvents": [
     "onCustomEditor:ncedit7lab.editor",
@@ -118,6 +132,18 @@
           }
         ],
         "priority": "default",
+        "diffEditorPriority": "option",
+        "mergeEditorPriority": "option"
+      },
+      {
+        "viewType": "ncedit7lab.editor",
+        "displayName": "ncedit7lab Editor",
+        "selector": [
+          {
+            "filenamePattern": "*"
+          }
+        ],
+        "priority": "option",
         "diffEditorPriority": "option",
         "mergeEditorPriority": "option"
       }
@@ -231,7 +257,7 @@
             "workbench-right",
             "disabled"
           ],
-          "default": "workbench-left",
+          "default": "disabled",
           "description": "Where the Templates manager is hosted in VS Code."
         }
       }

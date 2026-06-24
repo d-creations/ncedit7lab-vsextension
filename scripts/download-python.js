@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const PYTHON_VERSION = '3.14.5';
+const PYTHON_VERSION = '3.14.6';
 const BITS = '64'; // AMD64
 const ZIP_NAME = `python-${PYTHON_VERSION}-embed-amd64.zip`;
 const DOWNLOAD_URL = `https://www.python.org/ftp/python/${PYTHON_VERSION}/${ZIP_NAME}`;

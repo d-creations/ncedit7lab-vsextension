@@ -694,7 +694,7 @@ Node.js Dependencies
 ├─ cnc7drawnccode@1.0.0
 │  ├─ licenses: LGPL-3.0-or-later
 │  ├─ publisher: Damian
-├─ ncedit7-lab@1.0.0
+├─ ncedit7-lab@1.0.1
 │  ├─ licenses: MIT
 │  ├─ repository: https://github.com/d-creations/ncedit7lab-vsextension
 ├─ ncedit7lab@0.1.0
@@ -791,9 +791,9 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 click
-8.4.1
+8.4.2
 BSD-3-Clause
-<extension-root>\python_embedded\Lib\site-packages\click-8.4.1.dist-info\licenses\LICENSE.txt
+<extension-root>\python_embedded\Lib\site-packages\click-8.4.2.dist-info\licenses\LICENSE.txt
 Copyright 2014 Pallets
 
 Redistribution and use in source and binary forms, with or without

@@ -80,7 +80,7 @@ export async function activate(context: vscode.ExtensionContext) {
             hostMode: 'vscode-editor',
             ptmPlacement: layoutConfig.get<string>('ptmPlacement') || 'external-panel',
             showTemplatesPanel: transferConfig.get<boolean>('showTemplatesPanel') ?? true,
-            templatesPlacement: transferConfig.get<string>('templatesPlacement') || 'workbench-left',
+            templatesPlacement: transferConfig.get<string>('templatesPlacement') || 'disabled',
             seedDefaultTemplates: true,
             templateStorageMode: 'local',
         };
