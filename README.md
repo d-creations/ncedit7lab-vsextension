@@ -8,9 +8,12 @@ With NCEdit7Lab you can **plot NC programs**, visually inspect toolpaths, and tr
 ## Features
 - **Integrated CNC Editor:** Fully integrated NCEdit7Lab CNC editor directly within VS Code—no external viewer required.
 - **NC Plotting for FANUC Lathes:** Visualizes toolpaths, contours, and motion sequences for FANUC-based CNC turning machines.
+- **Siemens Sinumerik 840D/840Di Support:** Edit and visualize NC programs written for Siemens Sinumerik 840D and 840Di controllers, including support for MPF/PA/P1–P3 file formats.
 - **Variable State View:** Displays system and user variable states during program interpretation.
-- **Offline Ready:** Embedded Python backend ( NC plotting) for standalone processing—ideal for offline/enterprise environments.
-- **Machine Support:** Initial implementation for selected CNC turning machines, designed to be extendable.
+- **Template Manager:** Browse, insert, and manage reusable NC code snippets and program templates directly from the VS Code side panel—speeds up programming and enforces shop-floor standards.
+- **Transfer Manager:** Transfer NC programs to and from CNC machines via USB directly from VS Code, without leaving your editor.
+- **Offline Ready:** Embedded Python backend (NC plotting & transfer) for standalone processing—ideal for offline/enterprise environments.
+- **Machine Support:** Initial implementation for selected CNC turning machines (FANUC, Siemens Sinumerik), designed to be extendable.
 
 **Note:** This is the first beta version of NCEdit7Lab.  
 Some features may still be incomplete or contain bugs.  
