@@ -207,7 +207,7 @@
             "one-dark",
             "light"
           ],
-          "default": "light",
+          "default": "vscode",
           "description": "Theme mode used inside ncedit7lab webviews."
         },
         "ncedit7lab.showTemplatesPanel": {
