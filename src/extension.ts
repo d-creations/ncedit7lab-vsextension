@@ -11,6 +11,17 @@ type TemplatesPlacement = 'workbench-left' | 'workbench-right' | 'disabled';
 
 let backendProcess: cp.ChildProcess | undefined;
 
+export function resolveThemeMode(configThemeMode: string): string {
+    if (configThemeMode !== 'vscode') {
+        return configThemeMode;
+    }
+    const kind = vscode.window.activeColorTheme.kind;
+    if (kind === vscode.ColorThemeKind.Light || kind === vscode.ColorThemeKind.HighContrastLight) {
+        return 'light';
+    }
+    return 'one-dark';
+}
+
 export function resolveBackendBaseUrl(configuredBaseUrl: string | undefined, backendPort: number): string {
     const fallbackBaseUrl = `http://127.0.0.1:${backendPort}`;
     const trimmedBaseUrl = configuredBaseUrl?.trim();
@@ -66,7 +77,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const ptmConfig = vscode.workspace.getConfiguration('ncedit7lab.ptm');
         const layoutConfig = vscode.workspace.getConfiguration('ncedit7lab.layout');
         const transferConfig = vscode.workspace.getConfiguration('ncedit7lab');
-        const themeMode = vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode';
+        const themeMode = resolveThemeMode(vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode');
         const protocol = transferConfig.get<string>('transferProtocol') || 'none';
         const usbDefaultRootPath = vscode.workspace.getConfiguration('ncedit7lab.usb').get<string>('defaultRootPath')?.trim() || '';
         return {
@@ -89,7 +100,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const getPanelWebviewConfig = () => {
         const ptmConfig = vscode.workspace.getConfiguration('ncedit7lab.ptm');
         const transferConfig = vscode.workspace.getConfiguration('ncedit7lab');
-        const themeMode = vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode';
+        const themeMode = resolveThemeMode(vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode');
         const protocol = transferConfig.get<string>('transferProtocol') || 'none';
         const usbDefaultRootPath = vscode.workspace.getConfiguration('ncedit7lab.usb').get<string>('defaultRootPath')?.trim() || '';
         return {
@@ -235,6 +246,18 @@ export async function activate(context: vscode.ExtensionContext) {
                     templatesPlacement: getTemplatesViewPlacement(),
                 });
             }
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveColorTheme(() => {
+            editorProvider.updateConfig(getEditorWebviewConfig());
+            void workbenchPanelProvider.updateConfig(getPanelWebviewConfig());
+            void templatesPanelProvider.updateConfig({
+                ...getPanelWebviewConfig(),
+                hostMode: 'vscode-templates',
+                templatesPlacement: getTemplatesViewPlacement(),
+            });
         })
     );
 	// Explicitly resolve the embedded backend from the pre-bundled dependencies

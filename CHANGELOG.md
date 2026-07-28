@@ -2,6 +2,12 @@
 
 All notable changes to **NCEdit7Lab** will be documented here.
 
+## [1.0.2] - 2026-07-28
+
+### Fixed
+- `ncedit7lab.theme.mode: vscode` now correctly follows VS Code's dark/light color theme. Previously the webview did not apply any palette when set to `vscode`, causing the UI to remain in its default (light) state regardless of the active VS Code theme. The extension now resolves `vscode` to the matching built-in palette (`one-dark` for dark/high-contrast themes, `light` for light themes) using `vscode.window.activeColorTheme.kind`.
+- Added `onDidChangeActiveColorTheme` listener so all open editor and workbench-panel webviews receive an `UPDATE_CONFIG` message and re-apply the correct theme whenever the user switches the VS Code color theme at runtime.
+
 ## [1.0.1] - 2026-06-24
 
 ### Added

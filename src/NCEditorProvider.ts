@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
-import { resolveBackendBaseUrl } from './extension';
+import { resolveBackendBaseUrl, resolveThemeMode } from './extension';
 
 type WorkbenchTab = 'variables' | 'errors' | 'transfer' | 'templates';
 
@@ -144,9 +144,12 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
             const text = parts[i+1] || '';
             const chMatch = marker.match(/^<(O[A-Za-z0-9_]+)\.P([1-3])>$/);
             if (chMatch) {
+                const body = text.replace(/^\r?\n/, '');
+                // Skip outer wrapper/closing tags (e.g. FANUC USB upload format wraps each
+                // path assignment section with a bare <OXX.PN> tag that has no code body).
+                if (!body.trim()) { continue; }
                 programName = chMatch[1];
                 const channel = chMatch[2];
-                const body = text.replace(/^\r?\n/, '');
                 channels.set(channel, `${programName}\n${body}`.trimEnd());
             }
         }
@@ -581,7 +584,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
             transferDefaultIp,
             transferProtocol,
             transferDriverPath: config.get<string>('transferDriverPath') || '',
-            themeMode: config.get<string>('theme.mode') || 'vscode',
+            themeMode: resolveThemeMode(config.get<string>('theme.mode') || 'vscode'),
             hostMode: 'vscode-editor',
             ptmPlacement: layoutConfig.get<string>('ptmPlacement') || 'external-panel',
             showPtmTransfer: config.get<boolean>('showPtmTransfer') ?? false,
@@ -618,7 +621,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                 const usbDefaultRootPath = vscode.workspace.getConfiguration('ncedit7lab.usb').get<string>('defaultRootPath')?.trim() || '';
                 const transferDefaultIp = transferProtocol === 'usb' ? usbDefaultRootPath : defaultIp;
                 const transferDriverPath = vscode.workspace.getConfiguration('ncedit7lab').get<string>('transferDriverPath') || '';
-                const themeMode = vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode';
+                const themeMode = resolveThemeMode(vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode');
                 const ptmPlacement = layoutConfig.get<string>('ptmPlacement') || 'external-panel';
                 const showPtmTransfer = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showPtmTransfer') ?? false;
                 const showDrawPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showDrawPanel') ?? true;

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
-import { resolveBackendBaseUrl } from './extension';
+import { resolveBackendBaseUrl, resolveThemeMode } from './extension';
 
 type WorkbenchTab = 'variables' | 'errors' | 'transfer' | 'templates';
 
@@ -260,7 +260,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
             transferDefaultIp: transferProtocol === 'usb' ? usbDefaultRootPath : defaultIp,
             transferProtocol,
             transferDriverPath: config.get<string>('transferDriverPath') || '',
-            themeMode: config.get<string>('theme.mode') || 'vscode',
+            themeMode: resolveThemeMode(config.get<string>('theme.mode') || 'vscode'),
             hostMode: this.options.hostMode || 'vscode-panel',
             ptmPlacement: layoutConfig.get<string>('ptmPlacement') || 'external-panel',
             showPtmTransfer: config.get<boolean>('showPtmTransfer') ?? false,
@@ -310,7 +310,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                 const transferProtocol = vscode.workspace.getConfiguration('ncedit7lab').get<string>('transferProtocol') || 'none';
                 const transferDriverPath = vscode.workspace.getConfiguration('ncedit7lab').get<string>('transferDriverPath') || '';
                 const usbDefaultRootPath = vscode.workspace.getConfiguration('ncedit7lab.usb').get<string>('defaultRootPath')?.trim() || '';
-                const themeMode = vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode';
+                const themeMode = resolveThemeMode(vscode.workspace.getConfiguration('ncedit7lab').get<string>('theme.mode') || 'vscode');
                 const defaultIp = ptmConfig.get<string>('defaultIpAddress') || 'DEMO';
                 const transferDefaultIp = transferProtocol === 'usb' ? usbDefaultRootPath : defaultIp;
                 const ptmPlacement = layoutConfig.get<string>('ptmPlacement') || 'external-panel';
