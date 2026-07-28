@@ -694,10 +694,10 @@ Node.js Dependencies
 ├─ cnc7drawnccode@1.0.0
 │  ├─ licenses: LGPL-3.0-or-later
 │  ├─ publisher: Damian
-├─ ncedit7-lab@1.0.1
+├─ ncedit7-lab@1.0.2
 │  ├─ licenses: MIT
 │  ├─ repository: https://github.com/d-creations/ncedit7lab-vsextension
-├─ ncedit7lab@0.1.0
+├─ ncedit7lab@1.0.3
 │  ├─ licenses: ISC
 │  ├─ repository: https://github.com/d-creations/ncedit7lab
 └─ three@0.161.0
@@ -738,9 +738,9 @@ THE SOFTWARE.
 
 
 annotated-types
-0.7.0
-MIT License
-<extension-root>\python_embedded\Lib\site-packages\annotated_types-0.7.0.dist-info\licenses\LICENSE
+0.8.0
+MIT
+<extension-root>\python_embedded\Lib\site-packages\annotated_types-0.8.0.dist-info\licenses\LICENSE
 The MIT License (MIT)
 
 Copyright (c) 2022 the contributors
@@ -765,9 +765,9 @@ SOFTWARE.
 
 
 anyio
-4.14.0
+4.14.2
 MIT
-<extension-root>\python_embedded\Lib\site-packages\anyio-4.14.0.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\anyio-4.14.2.dist-info\licenses\LICENSE
 The MIT License (MIT)
 
 Copyright (c) 2018 Alex Grönholm
@@ -858,9 +858,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 fastapi
-0.138.0
+0.140.8
 MIT
-<extension-root>\python_embedded\Lib\site-packages\fastapi-0.138.0.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\fastapi-0.140.8.dist-info\licenses\LICENSE
 The MIT License (MIT)
 
 Copyright (c) 2018 Sebastián Ramírez
@@ -942,9 +942,9 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 hatchling
-1.30.1
+1.31.0
 MIT
-<extension-root>\python_embedded\Lib\site-packages\hatchling-1.30.1.dist-info\licenses\LICENSE.txt
+<extension-root>\python_embedded\Lib\site-packages\hatchling-1.31.0.dist-info\licenses\LICENSE.txt
 MIT License
 
 Copyright (c) 2021-present Ofek Lev <oss@ofek.dev>
@@ -994,9 +994,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ncplot7py
-0.0.1
+0.1.1
 See LICENSE
-<extension-root>\python_embedded\Lib\site-packages\ncplot7py-0.0.1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\ncplot7py-0.1.1.dist-info\licenses\LICENSE
                    GNU LESSER GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
@@ -1901,9 +1901,9 @@ SOFTWARE.
 
 
 typing_extensions
-4.15.0
+4.16.0
 PSF-2.0
-<extension-root>\python_embedded\Lib\site-packages\typing_extensions-4.15.0.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\typing_extensions-4.16.0.dist-info\licenses\LICENSE
 A. HISTORY OF THE SOFTWARE
 ==========================
 
@@ -2186,9 +2186,9 @@ PERFORMANCE OF THIS SOFTWARE.
 
 
 uvicorn
-0.49.0
+0.51.0
 BSD-3-Clause
-<extension-root>\python_embedded\Lib\site-packages\uvicorn-0.49.0.dist-info\licenses\LICENSE.md
+<extension-root>\python_embedded\Lib\site-packages\uvicorn-0.51.0.dist-info\licenses\LICENSE.md
 Copyright © 2017-present, [Encode OSS Ltd](https://www.encode.io/).
 All rights reserved.
 
