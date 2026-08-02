@@ -691,6 +691,9 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                         window.vscodeApi.postMessage({ type: 'changed', channel: event.detail.channel, text: event.detail.text });
                     });
                 </script>
+                <style>
+                    html, body { padding: 0 !important; }
+                </style>
                 `;
                 htmlContent = htmlContent.replace('<head>', `<head>\n${scriptInjection}`);
             }

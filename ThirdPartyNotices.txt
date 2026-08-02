@@ -694,10 +694,10 @@ Node.js Dependencies
 ├─ cnc7drawnccode@1.0.0
 │  ├─ licenses: LGPL-3.0-or-later
 │  ├─ publisher: Damian
-├─ ncedit7-lab@1.0.2
+├─ ncedit7-lab@1.0.4
 │  ├─ licenses: MIT
 │  ├─ repository: https://github.com/d-creations/ncedit7lab-vsextension
-├─ ncedit7lab@1.0.3
+├─ ncedit7lab@1.0.5
 │  ├─ licenses: ISC
 │  ├─ repository: https://github.com/d-creations/ncedit7lab
 └─ three@0.161.0
@@ -711,9 +711,9 @@ Python Dependencies (Pip)
 ==================================================
 
 annotated-doc
-0.0.4
+0.0.5
 MIT
-<extension-root>\python_embedded\Lib\site-packages\annotated_doc-0.0.4.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\annotated_doc-0.0.5.dist-info\licenses\LICENSE
 The MIT License (MIT)
 
 Copyright (c) 2025 Sebastián Ramírez
@@ -858,9 +858,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 fastapi
-0.140.8
+0.141.1
 MIT
-<extension-root>\python_embedded\Lib\site-packages\fastapi-0.140.8.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\fastapi-0.141.1.dist-info\licenses\LICENSE
 The MIT License (MIT)
 
 Copyright (c) 2018 Sebastián Ramírez
@@ -994,9 +994,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ncplot7py
-0.1.1
+0.1.2
 See LICENSE
-<extension-root>\python_embedded\Lib\site-packages\ncplot7py-0.1.1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\ncplot7py-0.1.2.dist-info\licenses\LICENSE
                    GNU LESSER GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
@@ -2186,9 +2186,9 @@ PERFORMANCE OF THIS SOFTWARE.
 
 
 uvicorn
-0.51.0
+0.52.1
 BSD-3-Clause
-<extension-root>\python_embedded\Lib\site-packages\uvicorn-0.51.0.dist-info\licenses\LICENSE.md
+<extension-root>\python_embedded\Lib\site-packages\uvicorn-0.52.1.dist-info\licenses\LICENSE.md
 Copyright © 2017-present, [Encode OSS Ltd](https://www.encode.io/).
 All rights reserved.
 

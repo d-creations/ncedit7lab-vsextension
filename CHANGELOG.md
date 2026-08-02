@@ -2,6 +2,20 @@
 
 All notable changes to **NCEdit7Lab** will be documented here.
 
+## [1.0.4] - 2026-08-02
+
+### Changed
+- Updated the `ncedit7lab` frontend Node module to version `1.0.5`.
+- Updated the `ncplot7py` Python package from the `ncedit7plot` project to version `0.1.1`.
+
+### Fixed
+- Removed host-injected webview padding from the custom editor, Templates view, and Workbench panel to keep their content flush and consistently aligned in VS Code and Theia.
+
+## [1.0.3] - 2026-07-29
+
+### Fixed
+- update node nccode7lab
+
 ## [1.0.2] - 2026-07-28
 
 ### Fixed

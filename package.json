@@ -3,7 +3,7 @@
   "publisher": "d-creations",
   "displayName": "NCEdit7-lab",
   "description": "Custom Editor for CNC files like NC/MPF PA P1 P2 P3 M S and more, with integrated  workbench panel for CNC data visualization.",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "license": "MIT",
   "repository": {
     "type": "git",

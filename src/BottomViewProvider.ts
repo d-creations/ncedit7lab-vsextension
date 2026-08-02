@@ -447,7 +447,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                 </script>
                 <style>
                     /* Force the app container to host the workbench panel content tightly */
-                    html, body { height: 100%; overflow: hidden; }
+                    html, body { height: 100%; padding: 0 !important; overflow: hidden; }
                     #app { height: 100%; overflow: hidden; background: var(--vscode-editor-background); }
                     #app-root { height: 100%; width: 100%; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
                     nc-workbench-panel-app { flex: 1; min-height: 0; height: 100%; width: 100%; }
