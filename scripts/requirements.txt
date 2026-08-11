@@ -1,5 +1,6 @@
 fastapi
 uvicorn
 gunicorn
+azure-monitor-opentelemetry
 git+https://github.com/d-creations/ncedit7plot.git
 pip-licenses
