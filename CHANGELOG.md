@@ -2,6 +2,12 @@
 
 All notable changes to **NCEdit7Lab** will be documented here.
 
+## [1.0.5] - 2026-08-13
+
+### Changed
+- Updated the `ncedit7lab` frontend Node module to version `1.0.6`, including the new VS Code branding assets.
+- Updated the `ncplot7py` Python package from the `ncedit7plot` project to version `0.1.4`, incorporating the latest NC code plotting changes.
+
 ## [1.0.4] - 2026-08-02
 
 ### Changed

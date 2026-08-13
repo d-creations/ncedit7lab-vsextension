@@ -12,6 +12,10 @@ const localPythonDir = path.join(extensionDir, 'python_embedded');
 
 const packagedBackendDir = path.join(extensionDir, 'node_modules', 'ncedit7lab', 'backend');
 
+const packagedExtensionIcon = path.join(extensionDir, 'node_modules', 'ncedit7lab', 'dist', 'branding', 'vscode', 'icon.png');
+
+const extensionIcon = path.join(extensionDir, 'resources', 'ncedit7lab-icon.png');
+
 const localMachinesConfig = path.join(localPythonDir, 'Lib', 'site-packages', 'ncplot7py', 'config', 'machines.json');
 
  
@@ -139,6 +143,8 @@ if (fs.existsSync(packagedBackendDir)) {
 }
 
  
+copyFileIfExists(packagedExtensionIcon, extensionIcon);
+
 
 console.log('Bundle complete.');
 
