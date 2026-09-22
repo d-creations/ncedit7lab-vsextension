@@ -4,7 +4,7 @@ import * as fs from 'fs';
 
 import { resolveBackendBaseUrl, resolveThemeMode } from './extension';
 
-type WorkbenchTab = 'variables' | 'errors' | 'transfer' | 'templates';
+type WorkbenchTab = 'variables' | 'errors' | 'transfer' | 'templates' | 'tools';
 
 function scriptValue(value: unknown): string {
     return JSON.stringify(value);

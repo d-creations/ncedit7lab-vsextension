@@ -6,8 +6,9 @@ import * as net from 'net';
 import { NCEditorProvider, TemplateInsertRequest } from './NCEditorProvider';
 import { WorkbenchPanelWebviewViewProvider } from './BottomViewProvider';
 
-type WorkbenchTab = 'variables' | 'errors' | 'transfer' | 'templates';
+type WorkbenchTab = 'variables' | 'errors' | 'transfer' | 'templates' | 'tools';
 type TemplatesPlacement = 'workbench-left' | 'workbench-right' | 'disabled';
+type ToolsPlacement = 'workbench-left' | 'workbench-right' | 'disabled';
 
 let backendProcess: cp.ChildProcess | undefined;
 
@@ -73,6 +74,19 @@ export async function activate(context: vscode.ExtensionContext) {
         return getTemplatesPlacement() === 'workbench-left' ? 'workbench-left' : 'disabled';
     };
 
+    const getToolsPlacement = (): ToolsPlacement => {
+        const placement = vscode.workspace.getConfiguration('ncedit7lab').get<string>('toolsPlacement');
+        return placement === 'workbench-left' || placement === 'disabled' ? placement : 'workbench-right';
+    };
+
+    const getWorkbenchToolsPlacement = (): ToolsPlacement => {
+        return getToolsPlacement() === 'workbench-left' ? 'workbench-left' : 'disabled';
+    };
+
+    const getToolsViewPlacement = (): ToolsPlacement => {
+        return getToolsPlacement() === 'workbench-right' ? 'workbench-right' : 'disabled';
+    };
+
     const getEditorWebviewConfig = () => {
         const ptmConfig = vscode.workspace.getConfiguration('ncedit7lab.ptm');
         const layoutConfig = vscode.workspace.getConfiguration('ncedit7lab.layout');
@@ -92,6 +106,7 @@ export async function activate(context: vscode.ExtensionContext) {
             ptmPlacement: layoutConfig.get<string>('ptmPlacement') || 'external-panel',
             showTemplatesPanel: transferConfig.get<boolean>('showTemplatesPanel') ?? true,
             templatesPlacement: transferConfig.get<string>('templatesPlacement') || 'disabled',
+            toolsPlacement: transferConfig.get<string>('toolsPlacement') || 'disabled',
             seedDefaultTemplates: true,
             templateStorageMode: 'local',
         };
@@ -115,6 +130,7 @@ export async function activate(context: vscode.ExtensionContext) {
             ptmPlacement: 'disabled',
             showTemplatesPanel: transferConfig.get<boolean>('showTemplatesPanel') ?? true,
             templatesPlacement: getWorkbenchTemplatesPlacement(),
+            toolsPlacement: getWorkbenchToolsPlacement(),
             seedDefaultTemplates: true,
             templateStorageMode: 'local',
         };
@@ -153,10 +169,21 @@ export async function activate(context: vscode.ExtensionContext) {
         hostMode: 'vscode-templates',
         onTemplateInsertRequest: handleTemplateInsertRequest,
     });
+    const toolsPanelProvider = new WorkbenchPanelWebviewViewProvider(context.extensionUri, backendPort, {
+        viewContainerId: 'ncedit7labTools',
+        defaultTab: 'tools',
+        toolsPlacement: getToolsViewPlacement(),
+        hostMode: 'vscode-panel',
+    });
     editorProvider = new NCEditorProvider(context, backendPort, (message: WorkbenchRelayMessage) => {
         if (message.type === 'OPEN_WORKBENCH_PANEL') {
             if (message.tab === 'templates') {
                 void templatesPanelProvider.reveal(message.tab, message.channel);
+                return;
+            }
+
+            if (message.tab === 'tools') {
+                void toolsPanelProvider.reveal(message.tab, message.channel);
                 return;
             }
 
@@ -166,12 +193,18 @@ export async function activate(context: vscode.ExtensionContext) {
 
         void workbenchPanelProvider.postMessage(message);
         void templatesPanelProvider.postMessage(message);
+        void toolsPanelProvider.postMessage(message);
     });
 
     context.subscriptions.push(
         vscode.commands.registerCommand('ncedit7lab.openWorkbenchPanel', async (tab?: WorkbenchTab) => {
             if (tab === 'templates') {
                 await templatesPanelProvider.reveal(tab);
+                return;
+            }
+
+            if (tab === 'tools') {
+                await toolsPanelProvider.reveal(tab);
                 return;
             }
 
@@ -182,6 +215,12 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('ncedit7lab.openTemplates', async () => {
             await templatesPanelProvider.reveal('templates');
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('ncedit7lab.openTools', async () => {
+            await toolsPanelProvider.reveal('tools');
         })
     );
 
@@ -229,6 +268,10 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.registerWebviewViewProvider('ncedit7lab.templatesView', templatesPanelProvider)
         );
 
+        context.subscriptions.push(
+            vscode.window.registerWebviewViewProvider('ncedit7lab.toolsView', toolsPanelProvider)
+        );
+
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration((event) => {
             if (
@@ -238,12 +281,19 @@ export async function activate(context: vscode.ExtensionContext) {
             ) {
                 workbenchPanelProvider.setTemplatesPlacement(getWorkbenchTemplatesPlacement());
                 templatesPanelProvider.setTemplatesPlacement(getTemplatesViewPlacement());
+                workbenchPanelProvider.setToolsPlacement(getWorkbenchToolsPlacement());
+                toolsPanelProvider.setToolsPlacement(getToolsViewPlacement());
                 editorProvider.updateConfig(getEditorWebviewConfig());
                 void workbenchPanelProvider.updateConfig(getPanelWebviewConfig());
                 void templatesPanelProvider.updateConfig({
                     ...getPanelWebviewConfig(),
                     hostMode: 'vscode-templates',
                     templatesPlacement: getTemplatesViewPlacement(),
+                });
+                void toolsPanelProvider.updateConfig({
+                    ...getPanelWebviewConfig(),
+                    hostMode: 'vscode-panel',
+                    toolsPlacement: getToolsViewPlacement(),
                 });
             }
         })

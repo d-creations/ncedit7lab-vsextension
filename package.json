@@ -3,7 +3,7 @@
   "publisher": "d-creations",
   "displayName": "NCEdit7-lab",
   "description": "Custom Editor for CNC files like NC/MPF PA P1 P2 P3 M S and more, with integrated  workbench panel for CNC data visualization.",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "license": "MIT",
   "icon": "resources/ncedit7lab-icon.png",
   "repository": {
@@ -71,6 +71,10 @@
       {
         "command": "ncedit7lab.openTemplates",
         "title": "ncedit7lab: Open Templates"
+      },
+      {
+        "command": "ncedit7lab.openTools",
+        "title": "ncedit7lab: Open Tools"
       },
       {
         "command": "ncedit7lab.find",
@@ -155,6 +159,11 @@
           "id": "ncedit7labTemplates",
           "title": "NC Templates",
           "icon": "resources/templates.svg"
+        },
+        {
+          "id": "ncedit7labTools",
+          "title": "NC Tools",
+          "icon": "$(tools)"
         }
       ],
       "panel": [
@@ -172,6 +181,14 @@
           "id": "ncedit7lab.templatesView",
           "name": "Templates",
           "icon": "$(symbol-snippet)"
+        }
+      ],
+      "ncedit7labTools": [
+        {
+          "type": "webview",
+          "id": "ncedit7lab.toolsView",
+          "name": "Tools",
+          "icon": "$(tools)"
         }
       ],
       "ncedit7labBottomPanel": [
@@ -260,6 +277,16 @@
           ],
           "default": "disabled",
           "description": "Where the Templates manager is hosted in VS Code."
+        },
+        "ncedit7lab.toolsPlacement": {
+          "type": "string",
+          "enum": [
+            "workbench-left",
+            "workbench-right",
+            "disabled"
+          ],
+          "default": "workbench-right",
+          "description": "Where the Tools manager is hosted in VS Code."
         }
       }
     }

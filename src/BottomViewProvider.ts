@@ -4,7 +4,7 @@ import * as fs from 'fs';
 
 import { resolveBackendBaseUrl, resolveThemeMode } from './extension';
 
-type WorkbenchTab = 'variables' | 'errors' | 'transfer' | 'templates';
+type WorkbenchTab = 'variables' | 'errors' | 'transfer' | 'templates' | 'tools';
 
 function scriptValue(value: unknown): string {
     return JSON.stringify(value);
@@ -48,6 +48,7 @@ interface WorkbenchPanelOptions {
     viewContainerId?: string;
     defaultTab?: WorkbenchTab;
     templatesPlacement?: 'workbench-right' | 'workbench-left' | 'disabled';
+    toolsPlacement?: 'workbench-right' | 'workbench-left' | 'disabled';
     hostMode?: 'vscode-panel' | 'vscode-templates';
     onTemplateInsertRequest?: (payload: TemplateInsertRequest) => void;
     onActiveProgramUploadRequest?: (pathId: string) => { pathId: string; content: string } | undefined;
@@ -245,6 +246,10 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
         this.options.templatesPlacement = templatesPlacement;
     }
 
+    public setToolsPlacement(toolsPlacement: 'workbench-right' | 'workbench-left' | 'disabled'): void {
+        this.options.toolsPlacement = toolsPlacement;
+    }
+
     private getCurrentWebviewConfig(): Record<string, unknown> {
         const ptmConfig = vscode.workspace.getConfiguration('ncedit7lab.ptm');
         const layoutConfig = vscode.workspace.getConfiguration('ncedit7lab.layout');
@@ -268,6 +273,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
             showDrawPanel: config.get<boolean>('showDrawPanel') ?? true,
             showTemplatesPanel: config.get<boolean>('showTemplatesPanel') ?? true,
             templatesPlacement: this.options.templatesPlacement || 'workbench-right',
+            toolsPlacement: this.options.toolsPlacement || 'workbench-right',
             seedDefaultTemplates: true,
             templateStorageMode: 'local',
             templateSeedUrl: '/templates.json',
@@ -318,6 +324,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                 const showDrawPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showDrawPanel') ?? true;
                 const showTemplatesPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showTemplatesPanel') ?? true;
                 const templatesPlacement = this.options.templatesPlacement || 'workbench-right';
+                const toolsPlacement = this.options.toolsPlacement || 'workbench-right';
                 const backendBaseUrl = resolveBackendBaseUrl(vscode.workspace.getConfiguration('ncedit7lab').get<string>('backendBaseUrl'), this._backendPort);
                 const templateSeedUrl = asDistResourceUri('templates.json');
 
@@ -342,6 +349,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                         showDrawPanel: ${showDrawPanel},
                         showTemplatesPanel: ${showTemplatesPanel},
                         templatesPlacement: ${scriptValue(templatesPlacement)},
+                        toolsPlacement: ${scriptValue(toolsPlacement)},
                         seedDefaultTemplates: true,
                         templateStorageMode: "local",
                         templateSeedUrl: ${scriptValue(templateSeedUrl)}

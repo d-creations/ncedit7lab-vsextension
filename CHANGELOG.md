@@ -2,6 +2,12 @@
 
 All notable changes to **NCEdit7Lab** will be documented here.
 
+## [1.1.0] - 2026-09-22
+
+### Added
+- Added VS Code Tools view support, including the dedicated activity-bar view and `ncedit7lab.openTools` command.
+- Added the `ncedit7lab.toolsPlacement` setting to control where the Tools manager is hosted.
+
 ## [1.0.5] - 2026-08-13
 
 ### Changed
