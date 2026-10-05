@@ -33,7 +33,8 @@
   "activationEvents": [
     "onCustomEditor:ncedit7lab.editor",
     "onView:ncedit7lab.workbenchPanelView",
-    "onView:ncedit7lab.templatesView"
+    "onView:ncedit7lab.templatesView",
+    "onView:ncedit7lab.toolsView"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -285,7 +286,7 @@
             "workbench-right",
             "disabled"
           ],
-          "default": "workbench-right",
+          "default": "workbench-left",
           "description": "Where the Tools manager is hosted in VS Code."
         }
       }

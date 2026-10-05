@@ -76,15 +76,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const getToolsPlacement = (): ToolsPlacement => {
         const placement = vscode.workspace.getConfiguration('ncedit7lab').get<string>('toolsPlacement');
-        return placement === 'workbench-left' || placement === 'disabled' ? placement : 'workbench-right';
+        return placement === 'workbench-right' || placement === 'disabled' ? placement : 'workbench-left';
     };
 
     const getWorkbenchToolsPlacement = (): ToolsPlacement => {
-        return getToolsPlacement() === 'workbench-left' ? 'workbench-left' : 'disabled';
+        return getToolsPlacement() === 'workbench-right' ? 'workbench-right' : 'disabled';
     };
 
     const getToolsViewPlacement = (): ToolsPlacement => {
-        return getToolsPlacement() === 'workbench-right' ? 'workbench-right' : 'disabled';
+        return getToolsPlacement() === 'workbench-left' ? 'workbench-left' : 'disabled';
     };
 
     const getEditorWebviewConfig = () => {
@@ -143,7 +143,11 @@ export async function activate(context: vscode.ExtensionContext) {
         | { type: 'FILE_UPDATED_EXTERNALLY'; channel: string; text: string; activeChannel?: string }
         | { type: 'WORKBENCH_BRIDGE'; eventType: 'EXECUTION_COMPLETED'; payload: { channelId: string; result: { variableSnapshotEntries: Array<[number, number]>; errors: unknown[] } } }
         | { type: 'WORKBENCH_BRIDGE'; eventType: 'EXECUTION_ERROR'; payload: { channelId: string; error: { message: string } } }
-        | { type: 'WORKBENCH_BRIDGE'; eventType: 'PLOT_CLEARED'; payload: Record<string, never> };
+        | { type: 'WORKBENCH_BRIDGE'; eventType: 'PLOT_CLEARED'; payload: Record<string, never> }
+        | { type: 'WORKBENCH_BRIDGE'; eventType: 'MACHINE_CHANGED'; payload: { machineName: string } }
+        | { type: 'PROGRAM_TOOL_UPDATE_RESULT'; payload: unknown }
+        | { type: 'PROGRAM_OFFSETS_UPDATE_RESULT'; payload: unknown }
+        | { type: 'PROGRAM_SETUP_UPDATE_RESULT'; payload: unknown };
 
     let editorProvider: NCEditorProvider;
     const handleTemplateInsertRequest = (payload: TemplateInsertRequest) => {
@@ -157,10 +161,54 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     };
 
+    const handleProgramToolUpdateRequest = (payload: unknown) => {
+        if (!editorProvider.applyProgramToolUpdateRequest(payload)) {
+            vscode.window.showWarningMessage('Open an NC editor before applying tool metadata.');
+        }
+    };
+    const handleProgramOffsetsUpdateRequest = (payload: unknown) => {
+        if (!editorProvider.applyProgramOffsetsUpdateRequest(payload)) {
+            vscode.window.showWarningMessage('Open an NC editor before applying tool offsets.');
+        }
+    };
+    const handleProgramSetupUpdateRequest = (payload: unknown) => {
+        if (!editorProvider.applyProgramSetupUpdateRequest(payload)) {
+            vscode.window.showWarningMessage('Open an NC editor before applying setup metadata.');
+        }
+    };
+
+    let lastMachineName: string | undefined;
+
+    const syncActiveEditorToPanel = (panelProvider: WorkbenchPanelWebviewViewProvider) => {
+        const channels: Record<string, string> = {};
+        for (const ch of ['1', '2', '3']) {
+            const req = editorProvider?.getActiveProgramUploadRequest(ch);
+            if (req?.content) {
+                channels[ch] = req.content;
+            }
+        }
+        if (Object.keys(channels).length > 0) {
+            void panelProvider.postMessage({
+                type: 'FILES_OPENED',
+                isSingleFile: !channels['2'] && !channels['3'],
+                activeChannel: '1',
+                channels,
+            });
+        }
+        if (lastMachineName) {
+            void panelProvider.postMessage({
+                type: 'WORKBENCH_BRIDGE',
+                eventType: 'MACHINE_CHANGED',
+                payload: { machineName: lastMachineName },
+            });
+        }
+    };
+
     const workbenchPanelProvider = new WorkbenchPanelWebviewViewProvider(context.extensionUri, backendPort, {
         templatesPlacement: getWorkbenchTemplatesPlacement(),
         onTemplateInsertRequest: handleTemplateInsertRequest,
         onActiveProgramUploadRequest: (pathId: string) => editorProvider.getActiveProgramUploadRequest(pathId),
+        onReady: () => syncActiveEditorToPanel(workbenchPanelProvider),
     });
     const templatesPanelProvider = new WorkbenchPanelWebviewViewProvider(context.extensionUri, backendPort, {
         viewContainerId: 'ncedit7labTemplates',
@@ -168,14 +216,23 @@ export async function activate(context: vscode.ExtensionContext) {
         templatesPlacement: getTemplatesViewPlacement(),
         hostMode: 'vscode-templates',
         onTemplateInsertRequest: handleTemplateInsertRequest,
+        onReady: () => syncActiveEditorToPanel(templatesPanelProvider),
     });
     const toolsPanelProvider = new WorkbenchPanelWebviewViewProvider(context.extensionUri, backendPort, {
         viewContainerId: 'ncedit7labTools',
         defaultTab: 'tools',
         toolsPlacement: getToolsViewPlacement(),
-        hostMode: 'vscode-panel',
+        hostMode: 'vscode-tools',
+        onProgramToolUpdateRequest: handleProgramToolUpdateRequest,
+        onProgramOffsetsUpdateRequest: handleProgramOffsetsUpdateRequest,
+        onProgramSetupUpdateRequest: handleProgramSetupUpdateRequest,
+        onReady: () => syncActiveEditorToPanel(toolsPanelProvider),
     });
     editorProvider = new NCEditorProvider(context, backendPort, (message: WorkbenchRelayMessage) => {
+        if (message.type === 'WORKBENCH_BRIDGE' && message.eventType === 'MACHINE_CHANGED') {
+            lastMachineName = message.payload.machineName;
+        }
+
         if (message.type === 'OPEN_WORKBENCH_PANEL') {
             if (message.tab === 'templates') {
                 void templatesPanelProvider.reveal(message.tab, message.channel);
@@ -184,6 +241,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
             if (message.tab === 'tools') {
                 void toolsPanelProvider.reveal(message.tab, message.channel);
+                syncActiveEditorToPanel(toolsPanelProvider);
                 return;
             }
 
@@ -221,6 +279,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('ncedit7lab.openTools', async () => {
             await toolsPanelProvider.reveal('tools');
+            syncActiveEditorToPanel(toolsPanelProvider);
         })
     );
 
@@ -292,7 +351,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 });
                 void toolsPanelProvider.updateConfig({
                     ...getPanelWebviewConfig(),
-                    hostMode: 'vscode-panel',
+                    hostMode: 'vscode-tools',
                     toolsPlacement: getToolsViewPlacement(),
                 });
             }
@@ -307,6 +366,11 @@ export async function activate(context: vscode.ExtensionContext) {
                 ...getPanelWebviewConfig(),
                 hostMode: 'vscode-templates',
                 templatesPlacement: getTemplatesViewPlacement(),
+            });
+            void toolsPanelProvider.updateConfig({
+                ...getPanelWebviewConfig(),
+                hostMode: 'vscode-tools',
+                toolsPlacement: getToolsViewPlacement(),
             });
         })
     );

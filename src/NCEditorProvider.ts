@@ -384,6 +384,17 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
         webviewPanel.onDidChangeViewState(({ webviewPanel: panel }) => {
             if (panel.active) {
                 this.activeWebviewPanel = panel;
+                const doc = this.panelDocuments.get(panel);
+                if (doc) {
+                    const channelsObj: Record<string, string> = Object.fromEntries(doc.channelsContent);
+                    const switchMessage: EditorRelayMessage = {
+                        type: 'FILES_OPENED',
+                        isSingleFile: doc.isSingleFile,
+                        activeChannel: doc.activeChannel,
+                        channels: channelsObj,
+                    };
+                    this.relayMessageToWorkbench(panel, switchMessage);
+                }
             }
         });
 
@@ -465,6 +476,11 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                 case 'SELECT_USB_DIRECTORY':
                     await selectUsbDirectory(webviewPanel.webview);
                     return;
+                case 'PROGRAM_TOOL_UPDATE_RESULT':
+                case 'PROGRAM_OFFSETS_UPDATE_RESULT':
+                case 'PROGRAM_SETUP_UPDATE_RESULT':
+                    this.relayMessageToWorkbench(webviewPanel, e as any);
+                    return;
                 case 'REQUEST_ACTIVE_PROGRAM_FOR_UPLOAD': {
                     const uploadRequest = this.getActiveProgramUploadRequest(String(e.pathId || ''));
                     if (!uploadRequest) {
@@ -494,6 +510,36 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
         }
 
         void activePanel.webview.postMessage({ type: 'TEMPLATE_INSERT_REQUEST', payload });
+        return true;
+    }
+
+    public applyProgramToolUpdateRequest(payload: unknown): boolean {
+        const activePanel = this.activeWebviewPanel;
+        if (!activePanel) {
+            return false;
+        }
+
+        void activePanel.webview.postMessage({ type: 'PROGRAM_TOOL_UPDATE_REQUEST', payload });
+        return true;
+    }
+
+    public applyProgramOffsetsUpdateRequest(payload: unknown): boolean {
+        const activePanel = this.activeWebviewPanel;
+        if (!activePanel) {
+            return false;
+        }
+
+        void activePanel.webview.postMessage({ type: 'PROGRAM_OFFSETS_UPDATE_REQUEST', payload });
+        return true;
+    }
+
+    public applyProgramSetupUpdateRequest(payload: unknown): boolean {
+        const activePanel = this.activeWebviewPanel;
+        if (!activePanel) {
+            return false;
+        }
+
+        void activePanel.webview.postMessage({ type: 'PROGRAM_SETUP_UPDATE_REQUEST', payload });
         return true;
     }
 
@@ -589,6 +635,9 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
             ptmPlacement: layoutConfig.get<string>('ptmPlacement') || 'external-panel',
             showPtmTransfer: config.get<boolean>('showPtmTransfer') ?? false,
             showDrawPanel: config.get<boolean>('showDrawPanel') ?? true,
+            showTemplatesPanel: config.get<boolean>('showTemplatesPanel') ?? true,
+            templatesPlacement: config.get<string>('templatesPlacement') || 'workbench-left',
+            toolsPlacement: config.get<string>('toolsPlacement') || 'workbench-left',
         };
     }
 
@@ -627,6 +676,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                 const showDrawPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showDrawPanel') ?? true;
                 const showTemplatesPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showTemplatesPanel') ?? true;
                 const templatesPlacement = vscode.workspace.getConfiguration('ncedit7lab').get<string>('templatesPlacement') || 'workbench-left';
+                const toolsPlacement = vscode.workspace.getConfiguration('ncedit7lab').get<string>('toolsPlacement') || 'workbench-left';
                 const backendBaseUrl = resolveBackendBaseUrl(vscode.workspace.getConfiguration('ncedit7lab').get<string>('backendBaseUrl'), this.backendPort);
                 const templateSeedUrl = asDistResourceUri('templates.json');
 
@@ -651,6 +701,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                         showDrawPanel: ${showDrawPanel},
                         showTemplatesPanel: ${showTemplatesPanel},
                         templatesPlacement: ${scriptValue(templatesPlacement)},
+                        toolsPlacement: ${scriptValue(toolsPlacement)},
                         seedDefaultTemplates: true,
                         templateStorageMode: "local",
                         templateSeedUrl: ${scriptValue(templateSeedUrl)}

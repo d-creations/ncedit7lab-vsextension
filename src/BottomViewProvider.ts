@@ -49,9 +49,13 @@ interface WorkbenchPanelOptions {
     defaultTab?: WorkbenchTab;
     templatesPlacement?: 'workbench-right' | 'workbench-left' | 'disabled';
     toolsPlacement?: 'workbench-right' | 'workbench-left' | 'disabled';
-    hostMode?: 'vscode-panel' | 'vscode-templates';
+    hostMode?: 'vscode-panel' | 'vscode-templates' | 'vscode-tools';
     onTemplateInsertRequest?: (payload: TemplateInsertRequest) => void;
+    onProgramToolUpdateRequest?: (payload: unknown) => void;
+    onProgramOffsetsUpdateRequest?: (payload: unknown) => void;
+    onProgramSetupUpdateRequest?: (payload: unknown) => void;
     onActiveProgramUploadRequest?: (pathId: string) => { pathId: string; content: string } | undefined;
+    onReady?: () => void;
 }
 
 export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProvider {
@@ -88,9 +92,19 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                         if (this.options.defaultTab) {
                             await this.postMessage({ type: 'OPEN_WORKBENCH_PANEL', tab: this.options.defaultTab });
                         }
+                        this.options.onReady?.();
                         break;
                     case 'TEMPLATE_INSERT_REQUEST':
                         this.options.onTemplateInsertRequest?.(message.payload as TemplateInsertRequest);
+                        break;
+                    case 'PROGRAM_TOOL_UPDATE_REQUEST':
+                        this.options.onProgramToolUpdateRequest?.(message.payload);
+                        break;
+                    case 'PROGRAM_OFFSETS_UPDATE_REQUEST':
+                        this.options.onProgramOffsetsUpdateRequest?.(message.payload);
+                        break;
+                    case 'PROGRAM_SETUP_UPDATE_REQUEST':
+                        this.options.onProgramSetupUpdateRequest?.(message.payload);
                         break;
                     case 'SELECT_USB_DIRECTORY':
                         await selectUsbDirectory(webviewView.webview);
@@ -459,6 +473,8 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                     #app { height: 100%; overflow: hidden; background: var(--vscode-editor-background); }
                     #app-root { height: 100%; width: 100%; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
                     nc-workbench-panel-app { flex: 1; min-height: 0; height: 100%; width: 100%; }
+                    nc-templates-panel { flex: 1; min-height: 0; height: 100%; width: 100%; }
+                    nc-tool-manager-panel { flex: 1; min-height: 0; height: 100%; width: 100%; }
                 </style>
                 `;
                 htmlContent = htmlContent.replace('<head>', `<head>\n${scriptInjection}`);
