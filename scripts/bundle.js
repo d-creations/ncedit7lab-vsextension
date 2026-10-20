@@ -22,7 +22,11 @@ const localMachinesConfig = path.join(localPythonDir, 'Lib', 'site-packages', 'n
 
 function hasBundledPythonRuntime(dir) {
 
-    return fs.existsSync(path.join(dir, 'python.exe')) && fs.existsSync(path.join(dir, 'python311.dll'));
+    return fs.existsSync(path.join(dir, 'python.exe')) && (
+        fs.existsSync(path.join(dir, 'python314.dll')) ||
+        fs.existsSync(path.join(dir, 'python311.dll')) ||
+        fs.existsSync(path.join(dir, 'python3.dll'))
+    );
 
 }
 

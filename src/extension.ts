@@ -43,6 +43,43 @@ export function resolveBackendBaseUrl(configuredBaseUrl: string | undefined, bac
     return trimmedBaseUrl;
 }
 
+export interface SimulationConfiguration {
+    gpuDefaultEnabled: boolean;
+    gpuPitchMm: { min: number; max: number; default: number };
+    cpuResolutionMm: { min: number; max: number; default: number };
+    stockMemoryMiB: number;
+    gpuStockPixelBudget: {
+        min: number;
+        max: number;
+        default: number;
+        nativeSharpness: boolean;
+    };
+}
+
+export function resolveSimulationConfig(): SimulationConfiguration {
+    const simConfig = vscode.workspace.getConfiguration('ncedit7lab.simulation');
+    return {
+        gpuDefaultEnabled: simConfig.get<boolean>('gpuDefaultEnabled') ?? true,
+        gpuPitchMm: {
+            min: simConfig.get<number>('gpuPitchMm.min') ?? 0.001,
+            max: simConfig.get<number>('gpuPitchMm.max') ?? 5,
+            default: simConfig.get<number>('gpuPitchMm.default') ?? 0.02,
+        },
+        cpuResolutionMm: {
+            min: simConfig.get<number>('cpuResolutionMm.min') ?? 0.05,
+            max: simConfig.get<number>('cpuResolutionMm.max') ?? 5,
+            default: simConfig.get<number>('cpuResolutionMm.default') ?? 0.05,
+        },
+        stockMemoryMiB: simConfig.get<number>('stockMemoryMiB') ?? 256,
+        gpuStockPixelBudget: {
+            min: simConfig.get<number>('gpuStockPixelBudget.min') ?? 250000,
+            max: simConfig.get<number>('gpuStockPixelBudget.max') ?? 1500000,
+            default: simConfig.get<number>('gpuStockPixelBudget.default') ?? 800000,
+            nativeSharpness: simConfig.get<boolean>('gpuStockPixelBudget.nativeSharpness') ?? false,
+        },
+    };
+}
+
 async function getFreePort(): Promise<number> {
     return new Promise((resolve, reject) => {
         const srv = net.createServer();
@@ -76,7 +113,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const getToolsPlacement = (): ToolsPlacement => {
         const placement = vscode.workspace.getConfiguration('ncedit7lab').get<string>('toolsPlacement');
-        return placement === 'workbench-right' || placement === 'disabled' ? placement : 'workbench-left';
+        return placement === 'workbench-left' || placement === 'disabled' ? placement : 'workbench-right';
     };
 
     const getWorkbenchToolsPlacement = (): ToolsPlacement => {
@@ -106,9 +143,10 @@ export async function activate(context: vscode.ExtensionContext) {
             ptmPlacement: layoutConfig.get<string>('ptmPlacement') || 'external-panel',
             showTemplatesPanel: transferConfig.get<boolean>('showTemplatesPanel') ?? true,
             templatesPlacement: transferConfig.get<string>('templatesPlacement') || 'disabled',
-            toolsPlacement: transferConfig.get<string>('toolsPlacement') || 'disabled',
+            toolsPlacement: transferConfig.get<string>('toolsPlacement') || 'workbench-right',
             seedDefaultTemplates: true,
             templateStorageMode: 'local',
+            simulation: resolveSimulationConfig(),
         };
     };
 
@@ -133,6 +171,7 @@ export async function activate(context: vscode.ExtensionContext) {
             toolsPlacement: getWorkbenchToolsPlacement(),
             seedDefaultTemplates: true,
             templateStorageMode: 'local',
+            simulation: resolveSimulationConfig(),
         };
     };
 
@@ -336,7 +375,8 @@ export async function activate(context: vscode.ExtensionContext) {
             if (
                 event.affectsConfiguration('ncedit7lab') ||
                 event.affectsConfiguration('ncedit7lab.ptm') ||
-                event.affectsConfiguration('ncedit7lab.layout')
+                event.affectsConfiguration('ncedit7lab.layout') ||
+                event.affectsConfiguration('ncedit7lab.simulation')
             ) {
                 workbenchPanelProvider.setTemplatesPlacement(getWorkbenchTemplatesPlacement());
                 templatesPanelProvider.setTemplatesPlacement(getTemplatesViewPlacement());

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
-import { resolveBackendBaseUrl, resolveThemeMode } from './extension';
+import { resolveBackendBaseUrl, resolveSimulationConfig, resolveThemeMode } from './extension';
 
 type WorkbenchTab = 'variables' | 'errors' | 'transfer' | 'templates' | 'tools';
 
@@ -29,11 +29,19 @@ async function selectUsbDirectory(webview: vscode.Webview): Promise<void> {
     }
 
     const selectedPath = selectedFolder.fsPath;
-    const configurationTarget = vscode.workspace.workspaceFolders
-        ? vscode.ConfigurationTarget.Workspace
-        : vscode.ConfigurationTarget.Global;
-    await usbConfig.update('defaultRootPath', selectedPath, configurationTarget);
     await webview.postMessage({ type: 'USB_DIRECTORY_SELECTED', path: selectedPath });
+    try {
+        const configurationTarget = vscode.workspace.workspaceFolders
+            ? vscode.ConfigurationTarget.Workspace
+            : vscode.ConfigurationTarget.Global;
+        await usbConfig.update('defaultRootPath', selectedPath, configurationTarget);
+    } catch {
+        try {
+            await usbConfig.update('defaultRootPath', selectedPath, vscode.ConfigurationTarget.Global);
+        } catch {
+            // Ignore config update failures so USB folder selection still works
+        }
+    }
 }
 
 export interface TemplateInsertRequest {
@@ -125,45 +133,53 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                     }
                     case 'SAVE_TRANSFER_FILE':
                         try {
-                            if (!vscode.workspace.workspaceFolders) {
-                                vscode.window.showErrorMessage("Open a workspace folder first to pull files.");
-                                return;
-                            }
-                            const wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
-                            let targetFileName = message.fileName;
-                            let filePath = path.join(wsPath, targetFileName);
-                            
-                            // Check if file already exists
-                            if (fs.existsSync(filePath)) {
-                                const choice = await vscode.window.showWarningMessage(
-                                    `File ${targetFileName} already exists in the workspace. Overwrite it?`,
-                                    { modal: true },
-                                    "Overwrite", "Save as Copy"
-                                );
-                                
-                                if (!choice) return; // User cancelled
-                                
-                                if (choice === "Save as Copy") {
-                                    const ext = path.extname(targetFileName);
-                                    const base = path.basename(targetFileName, ext);
-                                    let counter = 1;
-                                    targetFileName = `${base}_Copy${ext}`;
-                                    filePath = path.join(wsPath, targetFileName);
-                                    
-                                    while (fs.existsSync(filePath)) {
-                                        counter++;
-                                        targetFileName = `${base}_Copy_${counter}${ext}`;
+                            let targetFileName = String(message.fileName || 'O0001.NC');
+                            let filePath: string | undefined;
+
+                            if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+                                const wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+                                filePath = path.join(wsPath, targetFileName);
+
+                                // Check if file already exists
+                                if (fs.existsSync(filePath)) {
+                                    const choice = await vscode.window.showWarningMessage(
+                                        `File ${targetFileName} already exists in the workspace. Overwrite it?`,
+                                        { modal: true },
+                                        "Overwrite", "Save as Copy"
+                                    );
+
+                                    if (!choice) return; // User cancelled
+
+                                    if (choice === "Save as Copy") {
+                                        const ext = path.extname(targetFileName);
+                                        const base = path.basename(targetFileName, ext);
+                                        let counter = 1;
+                                        targetFileName = `${base}_Copy${ext}`;
                                         filePath = path.join(wsPath, targetFileName);
+
+                                        while (fs.existsSync(filePath)) {
+                                            counter++;
+                                            targetFileName = `${base}_Copy_${counter}${ext}`;
+                                            filePath = path.join(wsPath, targetFileName);
+                                        }
                                     }
                                 }
+                            } else {
+                                const saveUri = await vscode.window.showSaveDialog({
+                                    defaultUri: vscode.Uri.file(targetFileName),
+                                    saveLabel: 'Save Pulled NC Program',
+                                });
+                                if (!saveUri) return;
+                                filePath = saveUri.fsPath;
+                                targetFileName = path.basename(filePath);
                             }
 
-                            // Save file physically to workspace root
+                            // Save file physically
                             fs.writeFileSync(filePath, message.content, 'utf8');
-                            
+
                             // Open it explicitly with our custom editor!
                             await vscode.commands.executeCommand('vscode.openWith', vscode.Uri.file(filePath), 'ncedit7lab.editor');
-                            vscode.window.showInformationMessage(`Pulled ${targetFileName} to workspace.`);
+                            vscode.window.showInformationMessage(`Pulled ${targetFileName}.`);
                         } catch (err) {
                             vscode.window.showErrorMessage(`Failed to pull PTM file: ${err}`);
                         }
@@ -291,6 +307,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
             seedDefaultTemplates: true,
             templateStorageMode: 'local',
             templateSeedUrl: '/templates.json',
+            simulation: resolveSimulationConfig(),
         };
     }
 
@@ -341,6 +358,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                 const toolsPlacement = this.options.toolsPlacement || 'workbench-right';
                 const backendBaseUrl = resolveBackendBaseUrl(vscode.workspace.getConfiguration('ncedit7lab').get<string>('backendBaseUrl'), this._backendPort);
                 const templateSeedUrl = asDistResourceUri('templates.json');
+                const simulation = resolveSimulationConfig();
 
                 // Inject our configuration
                 const scriptInjection = `
@@ -366,7 +384,8 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                         toolsPlacement: ${scriptValue(toolsPlacement)},
                         seedDefaultTemplates: true,
                         templateStorageMode: "local",
-                        templateSeedUrl: ${scriptValue(templateSeedUrl)}
+                        templateSeedUrl: ${scriptValue(templateSeedUrl)},
+                        simulation: ${scriptValue(simulation)}
                     };
                     window.ncedit7labTemplateBridge = () => {
                         if (window.vscodeConfig?.hostMode !== 'vscode-templates' && window.vscodeConfig?.hostMode !== 'vscode-panel') {

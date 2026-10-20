@@ -10,7 +10,6 @@ node_modules
 !node_modules/ace-builds/src-min-noconflict/theme-github
 !node_modules/ace-builds/src-min-noconflict/theme-one_dark
 !node_modules/ace-builds/src-min-noconflict/ext-searchbox
-!node_modules/three/**
 !node_modules/ncedit7lab/**
 !node_modules/cnc7darwnccode/**
 src/

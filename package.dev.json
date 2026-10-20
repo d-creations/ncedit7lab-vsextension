@@ -193,6 +193,86 @@
           "type": "boolean",
           "default": false,
           "description": "Show the Ptm Transfer in ncedit7lab."
+        },
+        "ncedit7lab.templatesPlacement": {
+          "type": "string",
+          "enum": [
+            "workbench-left",
+            "workbench-right",
+            "disabled"
+          ],
+          "default": "disabled",
+          "description": "Where the Templates manager is hosted in VS Code."
+        },
+        "ncedit7lab.toolsPlacement": {
+          "type": "string",
+          "enum": [
+            "workbench-left",
+            "workbench-right",
+            "disabled"
+          ],
+          "default": "workbench-right",
+          "description": "Where the Tools manager is hosted in VS Code."
+        },
+        "ncedit7lab.simulation.gpuDefaultEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable GPU-accelerated material removal simulation by default."
+        },
+        "ncedit7lab.simulation.gpuPitchMm.min": {
+          "type": "number",
+          "default": 0.001,
+          "description": "Minimum allowed GPU pitch resolution in millimeters."
+        },
+        "ncedit7lab.simulation.gpuPitchMm.max": {
+          "type": "number",
+          "default": 5,
+          "description": "Maximum allowed GPU pitch resolution in millimeters."
+        },
+        "ncedit7lab.simulation.gpuPitchMm.default": {
+          "type": "number",
+          "default": 0.02,
+          "description": "Default GPU pitch resolution in millimeters."
+        },
+        "ncedit7lab.simulation.cpuResolutionMm.min": {
+          "type": "number",
+          "default": 0.05,
+          "description": "Minimum allowed CPU material removal resolution in millimeters."
+        },
+        "ncedit7lab.simulation.cpuResolutionMm.max": {
+          "type": "number",
+          "default": 5,
+          "description": "Maximum allowed CPU material removal resolution in millimeters."
+        },
+        "ncedit7lab.simulation.cpuResolutionMm.default": {
+          "type": "number",
+          "default": 0.05,
+          "description": "Default CPU material removal resolution in millimeters."
+        },
+        "ncedit7lab.simulation.stockMemoryMiB": {
+          "type": "number",
+          "default": 256,
+          "description": "Maximum memory budget in MiB allocated for stock simulation."
+        },
+        "ncedit7lab.simulation.gpuStockPixelBudget.min": {
+          "type": "number",
+          "default": 250000,
+          "description": "Minimum GPU stock pixel budget."
+        },
+        "ncedit7lab.simulation.gpuStockPixelBudget.max": {
+          "type": "number",
+          "default": 1500000,
+          "description": "Maximum GPU stock pixel budget."
+        },
+        "ncedit7lab.simulation.gpuStockPixelBudget.default": {
+          "type": "number",
+          "default": 800000,
+          "description": "Default GPU stock pixel budget."
+        },
+        "ncedit7lab.simulation.gpuStockPixelBudget.nativeSharpness": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use native display sharpness for GPU stock rendering."
         }
       }
     }

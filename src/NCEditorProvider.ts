@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
-import { resolveBackendBaseUrl, resolveThemeMode } from './extension';
+import { resolveBackendBaseUrl, resolveSimulationConfig, resolveThemeMode } from './extension';
 
 type WorkbenchTab = 'variables' | 'errors' | 'transfer' | 'templates' | 'tools';
 
@@ -29,11 +29,19 @@ async function selectUsbDirectory(webview: vscode.Webview): Promise<void> {
     }
 
     const selectedPath = selectedFolder.fsPath;
-    const configurationTarget = vscode.workspace.workspaceFolders
-        ? vscode.ConfigurationTarget.Workspace
-        : vscode.ConfigurationTarget.Global;
-    await usbConfig.update('defaultRootPath', selectedPath, configurationTarget);
     await webview.postMessage({ type: 'USB_DIRECTORY_SELECTED', path: selectedPath });
+    try {
+        const configurationTarget = vscode.workspace.workspaceFolders
+            ? vscode.ConfigurationTarget.Workspace
+            : vscode.ConfigurationTarget.Global;
+        await usbConfig.update('defaultRootPath', selectedPath, configurationTarget);
+    } catch {
+        try {
+            await usbConfig.update('defaultRootPath', selectedPath, vscode.ConfigurationTarget.Global);
+        } catch {
+            // Ignore config update failures so USB folder selection still works
+        }
+    }
 }
 
 type EditorRelayMessage =
@@ -476,6 +484,52 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                 case 'SELECT_USB_DIRECTORY':
                     await selectUsbDirectory(webviewPanel.webview);
                     return;
+                case 'SAVE_TRANSFER_FILE':
+                    try {
+                        let targetFileName = String(e.fileName || 'O0001.NC');
+                        const defaultDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+                            || (document.uri.scheme === 'file' ? path.dirname(document.uri.fsPath) : undefined);
+                        let filePath: string | undefined;
+
+                        if (defaultDir && fs.existsSync(defaultDir)) {
+                            filePath = path.join(defaultDir, targetFileName);
+                            if (fs.existsSync(filePath)) {
+                                const choice = await vscode.window.showWarningMessage(
+                                    `File ${targetFileName} already exists. Overwrite it?`,
+                                    { modal: true },
+                                    "Overwrite", "Save as Copy"
+                                );
+                                if (!choice) return;
+                                if (choice === "Save as Copy") {
+                                    const ext = path.extname(targetFileName);
+                                    const base = path.basename(targetFileName, ext);
+                                    let counter = 1;
+                                    targetFileName = `${base}_Copy${ext}`;
+                                    filePath = path.join(defaultDir, targetFileName);
+                                    while (fs.existsSync(filePath)) {
+                                        counter++;
+                                        targetFileName = `${base}_Copy_${counter}${ext}`;
+                                        filePath = path.join(defaultDir, targetFileName);
+                                    }
+                                }
+                            }
+                        } else {
+                            const saveUri = await vscode.window.showSaveDialog({
+                                defaultUri: vscode.Uri.file(targetFileName),
+                                saveLabel: 'Save Pulled NC Program',
+                            });
+                            if (!saveUri) return;
+                            filePath = saveUri.fsPath;
+                            targetFileName = path.basename(filePath);
+                        }
+
+                        fs.writeFileSync(filePath, String(e.content || ''), 'utf8');
+                        await vscode.commands.executeCommand('vscode.openWith', vscode.Uri.file(filePath), 'ncedit7lab.editor');
+                        vscode.window.showInformationMessage(`Pulled ${targetFileName}.`);
+                    } catch (err) {
+                        vscode.window.showErrorMessage(`Failed to pull file: ${err}`);
+                    }
+                    return;
                 case 'PROGRAM_TOOL_UPDATE_RESULT':
                 case 'PROGRAM_OFFSETS_UPDATE_RESULT':
                 case 'PROGRAM_SETUP_UPDATE_RESULT':
@@ -637,7 +691,8 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
             showDrawPanel: config.get<boolean>('showDrawPanel') ?? true,
             showTemplatesPanel: config.get<boolean>('showTemplatesPanel') ?? true,
             templatesPlacement: config.get<string>('templatesPlacement') || 'workbench-left',
-            toolsPlacement: config.get<string>('toolsPlacement') || 'workbench-left',
+            toolsPlacement: config.get<string>('toolsPlacement') || 'workbench-right',
+            simulation: resolveSimulationConfig(),
         };
     }
 
@@ -676,9 +731,10 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                 const showDrawPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showDrawPanel') ?? true;
                 const showTemplatesPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showTemplatesPanel') ?? true;
                 const templatesPlacement = vscode.workspace.getConfiguration('ncedit7lab').get<string>('templatesPlacement') || 'workbench-left';
-                const toolsPlacement = vscode.workspace.getConfiguration('ncedit7lab').get<string>('toolsPlacement') || 'workbench-left';
+                const toolsPlacement = vscode.workspace.getConfiguration('ncedit7lab').get<string>('toolsPlacement') || 'workbench-right';
                 const backendBaseUrl = resolveBackendBaseUrl(vscode.workspace.getConfiguration('ncedit7lab').get<string>('backendBaseUrl'), this.backendPort);
                 const templateSeedUrl = asDistResourceUri('templates.json');
+                const simulation = resolveSimulationConfig();
 
                 const scriptInjection = `
                 <script>
@@ -704,7 +760,8 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                         toolsPlacement: ${scriptValue(toolsPlacement)},
                         seedDefaultTemplates: true,
                         templateStorageMode: "local",
-                        templateSeedUrl: ${scriptValue(templateSeedUrl)}
+                        templateSeedUrl: ${scriptValue(templateSeedUrl)},
+                        simulation: ${scriptValue(simulation)}
                     };
                     window.vscodeApi = window.vscodeApi || acquireVsCodeApi();
                     window.ncedit7labApplyTemplateInsert = (payload, attempt = 0) => {
