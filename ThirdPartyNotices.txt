@@ -688,7 +688,7 @@ terms specified in this license.
 Node.js Dependencies
 ==================================================
 
-├─ ace-builds@1.45.0
+├─ ace-builds@1.45.2
 │  ├─ licenses: BSD-3-Clause
 │  ├─ repository: https://github.com/ajaxorg/ace-builds
 ├─ cnc7drawnccode@1.0.0
@@ -984,9 +984,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 certifi
-2026.7.22
+2026.10.19
 Mozilla Public License 2.0 (MPL 2.0)
-<extension-root>\python_embedded\Lib\site-packages\certifi-2026.7.22.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\certifi-2026.10.19.dist-info\licenses\LICENSE
 This package contains a modified version of ca-bundle.crt:
 
 ca-bundle.crt -- Bundle of CA Root Certificates
@@ -1109,9 +1109,9 @@ under the terms of *both* these licenses.
 
 
 fastapi
-0.143.1
+0.158.1
 MIT
-<extension-root>\python_embedded\Lib\site-packages\fastapi-0.143.1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\fastapi-0.158.1.dist-info\licenses\LICENSE
 The MIT License (MIT)
 
 Copyright (c) 2018 Sebastián Ramírez
@@ -1360,9 +1360,9 @@ SOFTWARE.
 
 
 ncplot7py
-0.3.0
+0.4.0
 LGPL-3.0
-<extension-root>\python_embedded\Lib\site-packages\ncplot7py-0.3.0.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\ncplot7py-0.4.0.dist-info\licenses\LICENSE
                    GNU LESSER GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
@@ -5828,9 +5828,9 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 starlette
-1.8.0
+1.9.0
 BSD-3-Clause
-<extension-root>\python_embedded\Lib\site-packages\starlette-1.8.0.dist-info\licenses\LICENSE.md
+<extension-root>\python_embedded\Lib\site-packages\starlette-1.9.0.dist-info\licenses\LICENSE.md
 Copyright © 2018, [Encode OSS Ltd](https://www.encode.io/).
 All rights reserved.
 
@@ -5861,9 +5861,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 tomlkit
-0.15.1
-MIT License
-<extension-root>\python_embedded\Lib\site-packages\tomlkit-0.15.1.dist-info\licenses\LICENSE
+0.15.2
+MIT
+<extension-root>\python_embedded\Lib\site-packages\tomlkit-0.15.2.dist-info\licenses\LICENSE
 Copyright (c) 2018 Sébastien Eustace
 
 Permission is hereby granted, free of charge, to any person obtaining
