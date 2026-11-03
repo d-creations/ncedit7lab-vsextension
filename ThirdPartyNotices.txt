@@ -694,10 +694,10 @@ Node.js Dependencies
 ├─ cnc7drawnccode@1.0.0
 │  ├─ licenses: LGPL-3.0-or-later
 │  ├─ publisher: Damian
-├─ ncedit7-lab@1.1.0
+├─ ncedit7-lab@1.1.1
 │  ├─ licenses: MIT
 │  ├─ repository: https://github.com/d-creations/ncedit7lab-vsextension
-├─ ncedit7lab@1.2.1
+├─ ncedit7lab@1.3.0
 │  ├─ licenses: ISC
 │  ├─ repository: https://github.com/d-creations/ncedit7lab
 └─ three@0.186.1
@@ -792,9 +792,9 @@ SOFTWARE.
 
 
 anyio
-4.15.1
+4.16.0
 MIT
-<extension-root>\python_embedded\Lib\site-packages\anyio-4.15.1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\anyio-4.16.0.dist-info\licenses\LICENSE
 The MIT License (MIT)
 
 Copyright (c) 2018 Alex Grönholm
@@ -818,9 +818,9 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 asgiref
-3.12.1
-BSD License
-<extension-root>\python_embedded\Lib\site-packages\asgiref-3.12.1.dist-info\licenses\LICENSE
+3.13.0
+BSD-3-Clause
+<extension-root>\python_embedded\Lib\site-packages\asgiref-3.13.0.dist-info\licenses\LICENSE
 Copyright (c) Django Software Foundation and individual contributors.
 All rights reserved.
 
@@ -904,9 +904,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 azure-identity
-1.26.0
+1.27.0
 MIT
-<extension-root>\python_embedded\Lib\site-packages\azure_identity-1.26.0.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\azure_identity-1.27.0.dist-info\licenses\LICENSE
 Copyright (c) Microsoft Corporation.
 
 MIT License
@@ -984,9 +984,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 certifi
-2026.10.19
+2026.10.23
 Mozilla Public License 2.0 (MPL 2.0)
-<extension-root>\python_embedded\Lib\site-packages\certifi-2026.10.19.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\certifi-2026.10.23.dist-info\licenses\LICENSE
 This package contains a modified version of ca-bundle.crt:
 
 ca-bundle.crt -- Bundle of CA Root Certificates
@@ -1109,9 +1109,9 @@ under the terms of *both* these licenses.
 
 
 fastapi
-0.158.1
+0.162.0
 MIT
-<extension-root>\python_embedded\Lib\site-packages\fastapi-0.158.1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\fastapi-0.162.0.dist-info\licenses\LICENSE
 The MIT License (MIT)
 
 Copyright (c) 2018 Sebastián Ramírez
@@ -1193,9 +1193,9 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 hatchling
-1.32.4
+1.33.0
 MIT
-<extension-root>\python_embedded\Lib\site-packages\hatchling-1.32.4.dist-info\licenses\LICENSE.txt
+<extension-root>\python_embedded\Lib\site-packages\hatchling-1.33.0.dist-info\licenses\LICENSE.txt
 MIT License
 
 Copyright (c) 2021-present Ofek Lev <oss@ofek.dev>
@@ -1360,9 +1360,9 @@ SOFTWARE.
 
 
 ncplot7py
-0.4.0
+0.4.1
 LGPL-3.0
-<extension-root>\python_embedded\Lib\site-packages\ncplot7py-0.4.0.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\ncplot7py-0.4.1.dist-info\licenses\LICENSE
                    GNU LESSER GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
@@ -1531,9 +1531,9 @@ Library.
 
 
 oauthlib
-4.0.0
+4.0.1
 BSD-3-Clause
-<extension-root>\python_embedded\Lib\site-packages\oauthlib-4.0.0.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\oauthlib-4.0.1.dist-info\licenses\LICENSE
 Copyright (c) The OAuthlib Community
 All rights reserved.
 
@@ -1564,9 +1564,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 opentelemetry-api
-1.45.1
+1.45.2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_api-1.45.1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_api-1.45.2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -1771,9 +1771,9 @@ Apache-2.0
 
 
 opentelemetry-instrumentation
-0.66b1
+0.66b2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation-0.66b1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation-0.66b2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -1978,9 +1978,9 @@ Apache-2.0
 
 
 opentelemetry-instrumentation-asgi
-0.66b1
+0.66b2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_asgi-0.66b1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_asgi-0.66b2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -2185,9 +2185,9 @@ Apache-2.0
 
 
 opentelemetry-instrumentation-dbapi
-0.66b1
+0.66b2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_dbapi-0.66b1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_dbapi-0.66b2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -2392,9 +2392,9 @@ Apache-2.0
 
 
 opentelemetry-instrumentation-django
-0.66b1
+0.66b2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_django-0.66b1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_django-0.66b2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -2599,9 +2599,9 @@ Apache-2.0
 
 
 opentelemetry-instrumentation-fastapi
-0.66b1
+0.66b2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_fastapi-0.66b1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_fastapi-0.66b2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -2806,9 +2806,9 @@ Apache-2.0
 
 
 opentelemetry-instrumentation-flask
-0.66b1
+0.66b2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_flask-0.66b1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_flask-0.66b2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -3013,9 +3013,9 @@ Apache-2.0
 
 
 opentelemetry-instrumentation-httpx
-0.66b1
+0.66b2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_httpx-0.66b1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_httpx-0.66b2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -3220,9 +3220,9 @@ Apache-2.0
 
 
 opentelemetry-instrumentation-logging
-0.66b1
+0.66b2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_logging-0.66b1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_logging-0.66b2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -3427,9 +3427,9 @@ Apache-2.0
 
 
 opentelemetry-instrumentation-psycopg2
-0.66b1
+0.66b2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_psycopg2-0.66b1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_psycopg2-0.66b2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -3634,9 +3634,9 @@ Apache-2.0
 
 
 opentelemetry-instrumentation-requests
-0.66b1
+0.66b2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_requests-0.66b1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_requests-0.66b2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -3841,9 +3841,9 @@ Apache-2.0
 
 
 opentelemetry-instrumentation-urllib
-0.66b1
+0.66b2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_urllib-0.66b1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_urllib-0.66b2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -4048,9 +4048,9 @@ Apache-2.0
 
 
 opentelemetry-instrumentation-urllib3
-0.66b1
+0.66b2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_urllib3-0.66b1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_urllib3-0.66b2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -4255,9 +4255,9 @@ Apache-2.0
 
 
 opentelemetry-instrumentation-wsgi
-0.66b1
+0.66b2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_wsgi-0.66b1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_instrumentation_wsgi-0.66b2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -4669,9 +4669,9 @@ Apache-2.0
 
 
 opentelemetry-sdk
-1.45.1
+1.45.2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_sdk-1.45.1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_sdk-1.45.2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -4876,9 +4876,9 @@ Apache-2.0
 
 
 opentelemetry-semantic-conventions
-0.66b1
+0.66b2
 Apache-2.0
-<extension-root>\python_embedded\Lib\site-packages\opentelemetry_semantic_conventions-0.66b1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\opentelemetry_semantic_conventions-0.66b2.dist-info\licenses\LICENSE
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -5083,7 +5083,7 @@ Apache-2.0
 
 
 opentelemetry-util-http
-0.66b1
+0.66b2
 Apache-2.0
 UNKNOWN
 UNKNOWN
@@ -5539,9 +5539,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 pycparser
-3.11
+3.12
 BSD-3-Clause
-<extension-root>\python_embedded\Lib\site-packages\pycparser-3.11.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\pycparser-3.12.dist-info\licenses\LICENSE
 pycparser -- A C parser in Python
 
 Copyright (c) 2008-2027, Eli Bendersky
@@ -5572,9 +5572,9 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 pydantic
-2.14.1
+2.14.2
 MIT
-<extension-root>\python_embedded\Lib\site-packages\pydantic-2.14.1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\pydantic-2.14.2.dist-info\licenses\LICENSE
 The MIT License (MIT)
 
 Copyright (c) 2017 to present Pydantic Services Inc. and individual contributors.
@@ -5599,9 +5599,9 @@ SOFTWARE.
 
 
 pydantic_core
-2.50.1
+2.50.2
 MIT
-<extension-root>\python_embedded\Lib\site-packages\pydantic_core-2.50.1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\pydantic_core-2.50.2.dist-info\licenses\LICENSE
 The MIT License (MIT)
 
 Copyright (c) 2022 Samuel Colvin
@@ -5828,9 +5828,9 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 starlette
-1.9.0
+1.10.0
 BSD-3-Clause
-<extension-root>\python_embedded\Lib\site-packages\starlette-1.9.0.dist-info\licenses\LICENSE.md
+<extension-root>\python_embedded\Lib\site-packages\starlette-1.10.0.dist-info\licenses\LICENSE.md
 Copyright © 2018, [Encode OSS Ltd](https://www.encode.io/).
 All rights reserved.
 
@@ -6466,9 +6466,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 wrapt
-2.5.1
+2.5.2
 BSD-2-Clause
-<extension-root>\python_embedded\Lib\site-packages\wrapt-2.5.1.dist-info\licenses\LICENSE
+<extension-root>\python_embedded\Lib\site-packages\wrapt-2.5.2.dist-info\licenses\LICENSE
 Copyright (c) 2013-2026, Graham Dumpleton
 All rights reserved.
 
