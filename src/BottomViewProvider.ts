@@ -466,8 +466,27 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                     };
 
                     window.vscodeApi = window.vscodeApi || acquireVsCodeApi();
+                    window.ncedit7labSyncSidebarVisibility = (config) => {
+                        if (!config) {
+                            return;
+                        }
+                        window.vscodeConfig = { ...(window.vscodeConfig || {}), ...config };
+                        const root = document.getElementById('app-root') || document.getElementById('app');
+                        if (!root) {
+                            return;
+                        }
+                        if (config.hostMode === 'vscode-tools') {
+                            root.style.display = config.toolsPlacement === 'disabled' ? 'none' : '';
+                        } else if (config.hostMode === 'vscode-templates') {
+                            const enabled = Boolean(config.showTemplatesPanel ?? true) && config.templatesPlacement !== 'disabled';
+                            root.style.display = enabled ? '' : 'none';
+                        }
+                    };
                     window.addEventListener('message', event => {
                         const message = event.data;
+                        if (message.type === 'UPDATE_CONFIG') {
+                            window.ncedit7labSyncSidebarVisibility(message.config);
+                        }
                         if (message.type === 'FILES_OPENED' || message.type === 'FILE_UPDATED_EXTERNALLY') {
                             window.dispatchEvent(new CustomEvent('vscode:files-opened', { detail: message }));
                         }
@@ -482,6 +501,7 @@ export class WorkbenchPanelWebviewViewProvider implements vscode.WebviewViewProv
                         }
                     });
                     window.addEventListener('DOMContentLoaded', () => {
+                        window.ncedit7labSyncSidebarVisibility(window.vscodeConfig);
                         window.ncedit7labTemplateBridge();
                         window.vscodeApi.postMessage({ type: 'ready' });
                     });

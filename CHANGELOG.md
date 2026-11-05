@@ -2,6 +2,14 @@
 
 All notable changes to **NCEdit7Lab** will be documented here.
 
+## [1.2.0] - 2026-11-05
+
+### Changed
+- update ncedit7lab "version": "1.1.2" support Material remove simulation and better Transfer USB support 
+- Improved `.PA` file parsing and saving for channels P1-P4, including normalization of line endings, percent wrappers, and program names.
+- Updated Templates and Tools panel visibility and opening behavior to follow their configured placement, including live configuration changes.
+- Set Templates panels to be disabled by default unless a placement is configured.
+
 ## [1.1.0] - 2026-09-22
 
 ### Added

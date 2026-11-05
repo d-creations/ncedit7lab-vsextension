@@ -142,31 +142,43 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
 
     private parsePAFile(content: string) {
         const channels = new Map<string, string>();
-        const regex = /(<O[A-Za-z0-9_]+\.P[1-3]>)/g;
+        const regex = /(<\s*(?:O[A-Za-z0-9_]+\.)?P[1-4]\s*>)/gi;
         const parts = content.split(regex);
         const header = parts[0] || '';
         let programName = 'O0001';
+        const assignMatch = header.match(/&F=\/\s*(O[A-Za-z0-9_]+)/i);
+        if (assignMatch) {
+            programName = assignMatch[1].toUpperCase();
+        }
         
         for (let i = 1; i < parts.length; i += 2) {
             const marker = parts[i];
             const text = parts[i+1] || '';
-            const chMatch = marker.match(/^<(O[A-Za-z0-9_]+)\.P([1-3])>$/);
+            const chMatch = marker.match(/^<\s*(?:(O[A-Za-z0-9_]+)\.)?P([1-4])\s*>$/i);
             if (chMatch) {
-                const body = text.replace(/^\r?\n/, '');
+                let body = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+                while (body.startsWith('%')) { body = body.slice(1).trimStart(); }
+                while (body.endsWith('%')) { body = body.slice(0, -1).trimEnd(); }
                 // Skip outer wrapper/closing tags (e.g. FANUC USB upload format wraps each
                 // path assignment section with a bare <OXX.PN> tag that has no code body).
                 if (!body.trim()) { continue; }
-                programName = chMatch[1];
+                if (chMatch[1]) {
+                    programName = chMatch[1].toUpperCase();
+                }
                 const channel = chMatch[2];
-                channels.set(channel, `${programName}\n${body}`.trimEnd());
+                const firstLine = body.split('\n', 1)[0]?.trim() || '';
+                const withHeader = /^O\d+\b/i.test(firstLine) ? body : `${programName}\n${body}`;
+                channels.set(channel, withHeader.trimEnd());
             }
         }
 
         if (channels.size === 0) {
-            const normalizedContent = content.trimEnd();
+            let normalizedContent = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+            while (normalizedContent.startsWith('%')) { normalizedContent = normalizedContent.slice(1).trimStart(); }
+            while (normalizedContent.endsWith('%')) { normalizedContent = normalizedContent.slice(0, -1).trimEnd(); }
             const firstLine = normalizedContent.split(/\r?\n/, 1)[0]?.trim();
-            if (firstLine && /^O[A-Za-z0-9_]+$/.test(firstLine)) {
-                programName = firstLine;
+            if (firstLine && /^O[A-Za-z0-9_]+$/i.test(firstLine)) {
+                programName = firstLine.toUpperCase();
             }
             channels.set('1', normalizedContent);
         }
@@ -174,35 +186,51 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
         return { header, channels, programName };
     }
 
-    private assemblePAFile(header: string, channels: Map<string, string>, fallbackProgramName = 'O0001') {
-        let res = header.trimEnd() + (header.trimEnd() ? '\n' : '');
-
+    private assemblePAFile(_header: string, channels: Map<string, string>, fallbackProgramName = 'O0001') {
         let progName = fallbackProgramName;
-        for (let i = 1; i <= 3; i++) {
-            const text = channels.get(i.toString()) || '';
-            const firstLine = text.split(/\r?\n/, 1)[0]?.trim();
-            if (firstLine && /^O[A-Za-z0-9_]+$/.test(firstLine)) {
-                progName = firstLine;
+        for (let i = 1; i <= 4; i++) {
+            const text = (channels.get(i.toString()) || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            const cleanText = text.replace(/%/g, '').trim();
+            const match = cleanText.match(/(?:^|\n)\s*(O[A-Za-z0-9_]+)\b/i);
+            if (match) {
+                progName = match[1].toUpperCase();
                 break;
             }
         }
 
-        for (let i = 1; i <= 3; i++) {
+        const numMatch = progName.match(/^O(\d+)$/i);
+        const formattedProgName = numMatch
+            ? `O${parseInt(numMatch[1], 10).toString().padStart(4, '0')}`
+            : progName.toUpperCase();
+
+        const sections: string[] = [];
+        for (let i = 1; i <= 4; i++) {
             const ch = i.toString();
             if (channels.has(ch)) {
-                let text = channels.get(ch)?.trimEnd() || '';
-                const lines = text.split(/\r?\n/);
-                const firstLine = lines[0]?.trim();
-                const channelProgramName = firstLine && /^O[A-Za-z0-9_]+$/.test(firstLine) ? firstLine : progName;
-                const body = (firstLine && /^O[A-Za-z0-9_]+$/.test(firstLine) ? lines.slice(1).join('\n') : text).trimEnd();
-                text = `<${channelProgramName}.P${i}>`;
-                if (body) {
-                    text += `\n${body}`;
+                let text = (channels.get(ch) || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+                while (text.startsWith('%')) { text = text.slice(1).trimStart(); }
+                while (text.endsWith('%')) { text = text.slice(0, -1).trimEnd(); }
+                if (!text) continue;
+
+                const lines = text.split('\n');
+                const firstLine = lines[0]?.trim() || '';
+                if (/^O[A-Za-z0-9_]+\b/i.test(firstLine)) {
+                    const remainder = firstLine.replace(/^O[A-Za-z0-9_]+\s*/i, '').trim();
+                    if (remainder) {
+                        lines[0] = remainder;
+                    } else {
+                        lines.shift();
+                    }
                 }
-                res += text + '\n\n';
+                const body = lines.join('\n').trim();
+                let block = `<${formattedProgName}.P${i}>`;
+                if (body) {
+                    block += `\n${body}`;
+                }
+                sections.push(block);
             }
         }
-        return res.trim() + '\n';
+        return `%\n&F=/${formattedProgName}/\n${sections.join('\n')}\n%\n`;
     }
 
     private async discoverSiblings(baseUri: vscode.Uri, baseName: string, activeChannel: string, channelUris: Map<string, vscode.Uri>, channelsContent: Map<string, string>) {
@@ -557,6 +585,17 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
         return this.activeWebviewPanel;
     }
 
+    public revealSidePanelTab(tab: 'tools' | 'templates', channel?: string): boolean {
+        const activePanel = this.activeWebviewPanel;
+        if (!activePanel) {
+            return false;
+        }
+
+        activePanel.reveal(activePanel.viewColumn);
+        void activePanel.webview.postMessage({ type: 'OPEN_EDITOR_SIDE_PANEL', tab, channel });
+        return true;
+    }
+
     public insertTemplateIntoActiveEditor(payload: TemplateInsertRequest): boolean {
         const activePanel = this.activeWebviewPanel;
         if (!activePanel) {
@@ -690,7 +729,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
             showPtmTransfer: config.get<boolean>('showPtmTransfer') ?? false,
             showDrawPanel: config.get<boolean>('showDrawPanel') ?? true,
             showTemplatesPanel: config.get<boolean>('showTemplatesPanel') ?? true,
-            templatesPlacement: config.get<string>('templatesPlacement') || 'workbench-left',
+            templatesPlacement: config.get<string>('templatesPlacement') || 'disabled',
             toolsPlacement: config.get<string>('toolsPlacement') || 'workbench-right',
             simulation: resolveSimulationConfig(),
         };
@@ -730,7 +769,7 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                 const showPtmTransfer = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showPtmTransfer') ?? false;
                 const showDrawPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showDrawPanel') ?? true;
                 const showTemplatesPanel = vscode.workspace.getConfiguration('ncedit7lab').get<boolean>('showTemplatesPanel') ?? true;
-                const templatesPlacement = vscode.workspace.getConfiguration('ncedit7lab').get<string>('templatesPlacement') || 'workbench-left';
+                const templatesPlacement = vscode.workspace.getConfiguration('ncedit7lab').get<string>('templatesPlacement') || 'disabled';
                 const toolsPlacement = vscode.workspace.getConfiguration('ncedit7lab').get<string>('toolsPlacement') || 'workbench-right';
                 const backendBaseUrl = resolveBackendBaseUrl(vscode.workspace.getConfiguration('ncedit7lab').get<string>('backendBaseUrl'), this.backendPort);
                 const templateSeedUrl = asDistResourceUri('templates.json');
@@ -783,6 +822,72 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                             window.setTimeout(() => window.ncedit7labApplyTemplateInsert(payload, attempt + 1), 50);
                         }
                     };
+                    window.ncedit7labSyncEditorSidePanels = (config) => {
+                        if (!config) {
+                            return;
+                        }
+                        window.vscodeConfig = { ...(window.vscodeConfig || {}), ...config };
+                        const editorApp = document.querySelector('nc-editor-app');
+                        if (!editorApp) {
+                            return;
+                        }
+                        editorApp.config = { ...(editorApp.config || {}), ...config };
+                        const tabsContainer = editorApp.querySelector('.side-panel-tabs');
+                        const plotContent = editorApp.querySelector('.plot-content');
+                        if (!tabsContainer || !plotContent) {
+                            return;
+                        }
+
+                        const ensureSideFeature = (view, label, tagName, enabled, insertAfterView) => {
+                            let tab = tabsContainer.querySelector('.side-tab[data-view="' + view + '"]');
+                            let panel = plotContent.querySelector('#side-view-' + view);
+                            if (enabled) {
+                                if (!tab) {
+                                    tab = document.createElement('button');
+                                    tab.className = 'side-tab';
+                                    tab.dataset.view = view;
+                                    tab.textContent = label;
+                                    tab.style.cssText = 'flex:1; padding: 6px; background: var(--vscode-tab-inactiveBackground, #2d2d2d); color: var(--vscode-tab-inactiveForeground, #cccccc); border: none; cursor: pointer; border-top: 2px solid transparent;';
+                                    tab.addEventListener('click', () => {
+                                        if (typeof editorApp.switchSidePanelView === 'function') {
+                                            editorApp.switchSidePanelView(view);
+                                        }
+                                    });
+                                    const anchorTab = insertAfterView ? tabsContainer.querySelector('.side-tab[data-view="' + insertAfterView + '"]') : null;
+                                    if (anchorTab && anchorTab.nextSibling) {
+                                        tabsContainer.insertBefore(tab, anchorTab.nextSibling);
+                                    } else {
+                                        tabsContainer.appendChild(tab);
+                                    }
+                                } else {
+                                    tab.style.display = '';
+                                }
+
+                                if (!panel) {
+                                    panel = document.createElement('div');
+                                    panel.id = 'side-view-' + view;
+                                    panel.style.cssText = 'flex: 1; overflow: hidden; display: none;';
+                                    panel.appendChild(document.createElement(tagName));
+                                    plotContent.appendChild(panel);
+                                }
+                            } else {
+                                if (tab) {
+                                    tab.style.display = 'none';
+                                }
+                                if (panel && panel.style.display !== 'none') {
+                                    panel.style.display = 'none';
+                                    if (typeof editorApp.switchSidePanelView === 'function') {
+                                        editorApp.switchSidePanelView('plot');
+                                    }
+                                }
+                            }
+                        };
+
+                        const showToolsPanel = config.toolsPlacement !== 'disabled' && config.toolsPlacement !== 'workbench-left';
+                        const showTemplatesPanel = Boolean(config.showTemplatesPanel ?? true) && config.templatesPlacement !== 'disabled' && config.templatesPlacement !== 'workbench-left';
+                        ensureSideFeature('tools', 'Tools', 'nc-tool-manager-panel', showToolsPanel, 'plot');
+                        ensureSideFeature('templates', 'Templates', 'nc-templates-panel', showTemplatesPanel, 'draw');
+                    };
                     window.addEventListener('message', event => {
                         const message = event.data;
                         if (message.type === 'FILES_OPENED' || message.type === 'FILE_UPDATED_EXTERNALLY') {
@@ -790,6 +895,21 @@ export class NCEditorProvider implements vscode.CustomEditorProvider<NCDocument>
                         }
                         if (message.type === 'TEMPLATE_INSERT_REQUEST') {
                             window.ncedit7labApplyTemplateInsert(message.payload);
+                        }
+                        if (message.type === 'UPDATE_CONFIG') {
+                            window.ncedit7labSyncEditorSidePanels(message.config);
+                        }
+                        if (message.type === 'OPEN_EDITOR_SIDE_PANEL' && message.tab) {
+                            window.ncedit7labSyncEditorSidePanels(window.vscodeConfig);
+                            const editorApp = document.querySelector('nc-editor-app');
+                            if (editorApp) {
+                                if (typeof editorApp.setPlotViewerVisible === 'function') {
+                                    editorApp.setPlotViewerVisible(true);
+                                }
+                                if (typeof editorApp.switchSidePanelView === 'function') {
+                                    editorApp.switchSidePanelView(message.tab);
+                                }
+                            }
                         }
                     });
                     window.addEventListener('DOMContentLoaded', () => {

@@ -100,7 +100,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const getTemplatesPlacement = (): TemplatesPlacement => {
         const placement = vscode.workspace.getConfiguration('ncedit7lab').get<string>('templatesPlacement');
-        return placement === 'workbench-right' || placement === 'disabled' ? placement : 'workbench-left';
+        return placement === 'workbench-left' || placement === 'workbench-right' ? placement : 'disabled';
     };
 
     const getWorkbenchTemplatesPlacement = (): TemplatesPlacement => {
@@ -142,8 +142,8 @@ export async function activate(context: vscode.ExtensionContext) {
             hostMode: 'vscode-editor',
             ptmPlacement: layoutConfig.get<string>('ptmPlacement') || 'external-panel',
             showTemplatesPanel: transferConfig.get<boolean>('showTemplatesPanel') ?? true,
-            templatesPlacement: transferConfig.get<string>('templatesPlacement') || 'disabled',
-            toolsPlacement: transferConfig.get<string>('toolsPlacement') || 'workbench-right',
+            templatesPlacement: getTemplatesPlacement(),
+            toolsPlacement: getToolsPlacement(),
             seedDefaultTemplates: true,
             templateStorageMode: 'local',
             simulation: resolveSimulationConfig(),
@@ -243,8 +243,32 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     };
 
+    const openTemplatesByPlacement = async (channel?: string) => {
+        const placement = getTemplatesPlacement();
+        if (placement === 'workbench-left') {
+            await templatesPanelProvider.reveal('templates', channel);
+            return;
+        }
+        if (placement === 'workbench-right') {
+            editorProvider.revealSidePanelTab('templates', channel);
+        }
+    };
+
+    const openToolsByPlacement = async (channel?: string) => {
+        const placement = getToolsPlacement();
+        if (placement === 'workbench-left') {
+            await toolsPanelProvider.reveal('tools', channel);
+            syncActiveEditorToPanel(toolsPanelProvider);
+            return;
+        }
+        if (placement === 'workbench-right') {
+            editorProvider.revealSidePanelTab('tools', channel);
+        }
+    };
+
     const workbenchPanelProvider = new WorkbenchPanelWebviewViewProvider(context.extensionUri, backendPort, {
         templatesPlacement: getWorkbenchTemplatesPlacement(),
+        toolsPlacement: getWorkbenchToolsPlacement(),
         onTemplateInsertRequest: handleTemplateInsertRequest,
         onActiveProgramUploadRequest: (pathId: string) => editorProvider.getActiveProgramUploadRequest(pathId),
         onReady: () => syncActiveEditorToPanel(workbenchPanelProvider),
@@ -274,13 +298,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
         if (message.type === 'OPEN_WORKBENCH_PANEL') {
             if (message.tab === 'templates') {
-                void templatesPanelProvider.reveal(message.tab, message.channel);
+                void openTemplatesByPlacement(message.channel);
                 return;
             }
 
             if (message.tab === 'tools') {
-                void toolsPanelProvider.reveal(message.tab, message.channel);
-                syncActiveEditorToPanel(toolsPanelProvider);
+                void openToolsByPlacement(message.channel);
                 return;
             }
 
@@ -296,12 +319,12 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('ncedit7lab.openWorkbenchPanel', async (tab?: WorkbenchTab) => {
             if (tab === 'templates') {
-                await templatesPanelProvider.reveal(tab);
+                await openTemplatesByPlacement();
                 return;
             }
 
             if (tab === 'tools') {
-                await toolsPanelProvider.reveal(tab);
+                await openToolsByPlacement();
                 return;
             }
 
@@ -311,14 +334,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(
         vscode.commands.registerCommand('ncedit7lab.openTemplates', async () => {
-            await templatesPanelProvider.reveal('templates');
+            await openTemplatesByPlacement();
         })
     );
 
     context.subscriptions.push(
         vscode.commands.registerCommand('ncedit7lab.openTools', async () => {
-            await toolsPanelProvider.reveal('tools');
-            syncActiveEditorToPanel(toolsPanelProvider);
+            await openToolsByPlacement();
         })
     );
 
